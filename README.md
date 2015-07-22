@@ -6,13 +6,10 @@
 
     cJSON.c 和 cJSON.h 是json库
 
-    EdpKit.c 和 EdpKit.h 是edp协议封装
+    EdpKit.c 和 EdpKit.h 是edp协议封装，EdpKit.h有关于全部接口的注释
 
-    Main.c 是demo程序 包括网络通信部分和接收发送edp包部分（包含了目前edp支持的全部协议）。
-    例子包含发送心跳，以及设备与设备之间互发消息等等。
-    通过Makefile_25267和Makefile_45523 可以代码分别编译成25267.exe和45523.exe。
-    25267.exe的源设备是25267，目标设备是45523，45523.exe的源设备是45523，目标设备是25267。
-
-使用说明
+    Main.c 是demo程序 包括网络通信部分，它仅仅是一个使用EdpKit的例子。客户程序应该写自己的通信模块，把Common.h, cJSON.h, cJSON.c, EdpKit.h, EdpKit.c加入工程，直接调用EdpKit的函数。
     
-    将Common.h, cJSON.h, cJSON.c, EdpKit.h, EdpKit.c加入工程编译即可。
+    Openssl.c 和 Openssl.h 是用openssl库进行加密，如果需要加密功能且系统内已经安装openssl，在Makefile中取消以下两行注释
+    #CFLAGS+=-D_ENCRYPT -lcrypto
+    #CLIENT_OBJ += Openssl.o
