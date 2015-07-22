@@ -4,7 +4,7 @@
 #include <assert.h>
 #include <time.h>
 #include "EdpKit.h"
-
+ 
 #define MKFUN_PACKET_SAVE_DATA(TYPE, NAME)				\
     EdpPacket* PacketSavedata##NAME(SaveDataType type,			\
 				    const char* dst_devid,		\

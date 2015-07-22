@@ -1,5 +1,5 @@
 all: edp.exe
-
+ 
 CC=gcc
 CFLAGS=-I. -g -D_LINUX -lm -lpthread
 CLIENT_OBJ = cJSON.o EdpKit.o Main.o
