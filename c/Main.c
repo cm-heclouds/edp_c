@@ -11,7 +11,7 @@
 #include "EdpKit.h"
 #ifdef _ENCRYPT
 #include "Openssl.h"
-#endif 
+#endif
 /*
  * [说明]
  * Main.c 是为了测试EdpKit而写的, 也是给客户展示如何使用EdpKit
@@ -390,7 +390,8 @@ int main(int argc, char *argv[])
     char* src_api_key = NULL;
     char* ds_for_send = NULL;
     double value_for_send = 0.0;
-    char send_str[] = "temperature,2015-03-22 22:31:12,22.5;humidity,35%;pm2.5,89;1001";
+	// savedata string add self-defined spliter
+    char send_str[] = ",;temperature,2015-03-22 22:31:12,22.5;humidity,35%;pm2.5,89;1001"; 
     SaveDataType data_type;
 
     while ((opt = getopt(argc, argv, "hi:p:s:d:a:l:v:E")) != -1) {
