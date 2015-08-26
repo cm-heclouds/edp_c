@@ -155,7 +155,7 @@ int32 DoSend(int32 sockfd, const char* buffer, uint32 len)
         total += n;
     }
     /* wululu test print send bytes */
-    hexdump(buffer, len);
+    hexdump((const unsigned char *)buffer, len);
     return total;
 }
 /* 
@@ -201,6 +201,11 @@ void recv_thread_func(void* arg)
     int iValue = 0;
     char* cValue = NULL;
 
+    char* simple_str = NULL;
+    char cmd_resp[] = "ok";
+    unsigned cmd_resp_len = 0;
+
+
 #ifdef _DEBUG
     printf("[%s] recv thread start ...\n", __func__);
 #endif
@@ -213,7 +218,7 @@ void recv_thread_func(void* arg)
             break;
         printf("recv from server, bytes: %d\n", n);
         /* wululu test print send bytes */
-        hexdump(buffer, n);
+        hexdump((const unsigned char *)buffer, n);
         /* 成功接收了n个字节的数据 */
         WriteBytes(recv_buf, buffer, n);
         while (1)
@@ -295,7 +300,6 @@ void recv_thread_func(void* arg)
                             free(save_bin);
                         }
 			else if (jsonorbin == kTypeString){
-			    char* simple_str = NULL;
 			    UnpackSavedataSimpleString(pkg, &simple_str);
 			    
 			    printf("%s\n", simple_str);
@@ -319,8 +323,7 @@ void recv_thread_func(void* arg)
 		     * 用户按照自己的需求处理并返回，响应消息体可以为空，此处假设返回2个字符"ok"。
 		     * 处理完后需要释放
 		     */
-		    char cmd_resp[] = "ok";
-		    unsigned cmd_resp_len = strlen(cmd_resp);
+		    cmd_resp_len = strlen(cmd_resp);
 		    send_pkg = PacketCmdResp(cmdid, cmdid_len,
 					     cmd_resp, cmd_resp_len);
 #ifdef _ENCRYPT
@@ -328,7 +331,7 @@ void recv_thread_func(void* arg)
 			SymmEncrypt(send_pkg);
 		    }
 #endif
-		    DoSend(sockfd, send_pkg->_data, send_pkg->_write_pos);
+		    DoSend(sockfd, (const char*)send_pkg->_data, send_pkg->_write_pos);
 		    DeleteBuffer(&send_pkg);
 		    
 		    free(cmdid);
@@ -390,10 +393,24 @@ int main(int argc, char *argv[])
     char* src_api_key = NULL;
     char* ds_for_send = NULL;
     double value_for_send = 0.0;
-	// savedata string add self-defined spliter
-    char send_str[] = ",;temperature,2015-03-22 22:31:12,22.5;humidity,35%;pm2.5,89;1001"; 
+    char send_str[] = ",;temperature,2015-03-22 22:31:12,22.5;humidity,35%;pm2.5,89;1001";
     SaveDataType data_type;
-
+    /* 
+     * 说明: 这里只是为了测试EdpKit而写的例子, 客户程序应该根据自己程序的需求写代码
+     * 根据标准输入 做不同的处理 
+     * 0 发送 心跳请求EDP包
+     * 1 发送 转发数据请求EDP包
+     * 2 发送 存储json数据EDP包
+     * 3 发送 存储bin数据EDP包
+     */
+    char msg[][50] = {"send ping to server",
+		      "send pushdata to server",
+		      "send savedata full json to server",
+		      "send savedata bin to server",
+		      "send savedata simple json without time to server",
+		      "send savedata simple json with time to server",
+		      "send string split by simicolon"};
+	
     while ((opt = getopt(argc, argv, "hi:p:s:d:a:l:v:E")) != -1) {
 	switch (opt){
 	case 'i':
@@ -450,38 +467,37 @@ int main(int argc, char *argv[])
     }
 
     /* create a socket and connect to server */
-    sockfd = Open(ip, atoi(port));
+    sockfd = Open((const uint8*)ip, atoi(port));
     if (sockfd < 0) 
         exit(0);
     
     /* create a recv thread */
-    ret=pthread_create(&id_1,NULL,(void*)recv_thread_func, &sockfd);  
-
+    ret=pthread_create(&id_1,NULL,(void *(*) (void *))recv_thread_func, &sockfd);  
 #ifdef _ENCRYPT
     if (g_is_encrypt){
 	send_pkg = PacketEncryptReq(kTypeAes);
 	/* 向设备云发送加密请求 */
 	printf("send encrypt to server, bytes: %d\n", send_pkg->_write_pos);
-	ret=DoSend(sockfd, (char*)send_pkg->_data, send_pkg->_write_pos);
+	ret=DoSend(sockfd, (const char*)send_pkg->_data, send_pkg->_write_pos);
 	DeleteBuffer(&send_pkg);
 	sleep(1);
     }
 #endif
 
     /* connect to server */
-    //    send_pkg = PacketConnect1(src_dev, "Bs04OCJioNgpmvjRphRak15j7Z8=");
+    /*    send_pkg = PacketConnect1(src_dev, "Bs04OCJioNgpmvjRphRak15j7Z8=");*/
     send_pkg = PacketConnect1(src_dev, src_api_key);
 #ifdef _ENCRYPT
     if (g_is_encrypt){
 	SymmEncrypt(send_pkg);
     }
 #endif
-    // send_pkg = PacketConnect2("433223", "{ \"SYS\" : \"0DEiuApATHgLurKNEl6vY4bLwbQ=\" }");
-    // send_pkg = PacketConnect2("433223", "{ \"13982031959\" : \"888888\" }");
+    /* send_pkg = PacketConnect2("433223", "{ \"SYS\" : \"0DEiuApATHgLurKNEl6vY4bLwbQ=\" }");*/
+    /* send_pkg = PacketConnect2("433223", "{ \"13982031959\" : \"888888\" }");*/
 
     /* 向设备云发送连接请求 */
     printf("send connect to server, bytes: %d\n", send_pkg->_write_pos);
-    ret=DoSend(sockfd, send_pkg->_data, send_pkg->_write_pos);
+    ret=DoSend(sockfd, (const char*)send_pkg->_data, send_pkg->_write_pos);
     DeleteBuffer(&send_pkg);
 
     sleep(1);
@@ -489,23 +505,7 @@ int main(int argc, char *argv[])
     printf("[4] send save json simple format without time\n");
     printf("[5] send save json simple format with time\n");
     printf("[6] send simple format (string) \n");
-
-    /* 
-     * 说明: 这里只是为了测试EdpKit而写的例子, 客户程序应该根据自己程序的需求写代码
-     * 根据标准输入 做不同的处理 
-     * 0 发送 心跳请求EDP包
-     * 1 发送 转发数据请求EDP包
-     * 2 发送 存储json数据EDP包
-     * 3 发送 存储bin数据EDP包
-     */
-    char msg[][50] = {"send ping to server",
-		      "send pushdata to server",
-		      "send savedata full json to server",
-		      "send savedata bin to server",
-		      "send savedata simple json without time to server",
-		      "send savedata simple json with time to server",
-		      "send string split by simicolon"};
-		      
+	      
     while (1)
     {
         c = getchar();
@@ -525,14 +525,14 @@ int main(int argc, char *argv[])
 	    if (c == '4') data_type = kTypeSimpleJsonWithoutTime;
 	    if (c == '5') data_type = kTypeSimpleJsonWithTime;
 
-	    // send_pkg = PacketSavedataInt(data_type, dst_dev, ds_for_send, 1234, 0, NULL);
+	    /* send_pkg = PacketSavedataInt(data_type, dst_dev, ds_for_send, 1234, 0, NULL);*/
 	    send_pkg = PacketSavedataDouble(data_type, dst_dev, ds_for_send, value_for_send, 0, NULL);
-	    // send_pkg = PacketSavedataString(data_type, dst_dev, ds_for_send, "test12345678", 0, NULL);
+	    /* send_pkg = PacketSavedataString(data_type, dst_dev, ds_for_send, "test12345678", 0, NULL); */
 	    break;
 	    
 	case '3':
 	    desc_json=cJSON_Parse(text2);
-            send_pkg = PacketSavedataBin(dst_dev, desc_json, save_bin, sizeof(save_bin)); 
+            send_pkg = PacketSavedataBin(dst_dev, desc_json, (const uint8*)save_bin, sizeof(save_bin)); 
 	    break;
 
 	case '6':
@@ -550,7 +550,7 @@ int main(int argc, char *argv[])
 	    }
 #endif
             printf("%s, bytes: %d\n", msg[c-'0'], send_pkg->_write_pos);
-            DoSend(sockfd, send_pkg->_data, send_pkg->_write_pos);
+            DoSend(sockfd, (const char*)send_pkg->_data, send_pkg->_write_pos);
             DeleteBuffer(&send_pkg);
 
 	    getchar(); /* 读取回车符，丢弃 */

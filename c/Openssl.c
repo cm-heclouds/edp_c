@@ -1,5 +1,5 @@
 #ifdef _ENCRYPT
- 
+
 #include "Openssl.h"
 #include <stdlib.h>
 #include <string.h>
@@ -25,6 +25,13 @@ static void exit_fun(){
 }
 
 EdpPacket* PacketEncryptReq(EncryptAlgType type){
+    BIGNUM* bne = NULL;
+    int len = 0;
+    int ret = 0;
+    EdpPacket* pkg = NULL;
+    unsigned remainlen = 0;
+    unsigned char tmp[RSA_E_LEN_BYTE] = {0};;
+
     if (type != kTypeAes){
 	return NULL;
     }
@@ -32,9 +39,6 @@ EdpPacket* PacketEncryptReq(EncryptAlgType type){
     /* init rsa */
     if (!g_rsa){
 	atexit(exit_fun);
-
-	BIGNUM* bne = NULL;
-	int ret = 0;
 	bne=BN_new();
 	BN_set_word(bne, RSA_E);
 	g_rsa = RSA_new();
@@ -44,15 +48,15 @@ EdpPacket* PacketEncryptReq(EncryptAlgType type){
 	}
     }
 
-    EdpPacket* pkg = NewBuffer();
-    unsigned remainlen = RSA_N_LEN_BYTE + RSA_E_LEN_BYTE + 1; 
+    pkg = NewBuffer();
+    remainlen = RSA_N_LEN_BYTE + RSA_E_LEN_BYTE + 1; 
     WriteByte(pkg, ENCRYPTREQ);
     WriteRemainlen(pkg, remainlen);
 
     /* write e */
     memset(pkg->_data + pkg->_write_pos, 0, RSA_E_LEN_BYTE);
-    unsigned char tmp[RSA_E_LEN_BYTE];
-    int len = BN_bn2bin(g_rsa->e, tmp);
+
+    len = BN_bn2bin(g_rsa->e, tmp);
     if (len > RSA_E_LEN_BYTE){
 	DeleteBuffer(&pkg);
 	return NULL;
@@ -83,27 +87,34 @@ EdpPacket* PacketEncryptReq(EncryptAlgType type){
 }
 
 int32 UnpackEncryptResp(EdpPacket* pkg){
-    uint32 remainlen;
+    uint32 remainlen = 0;
+    uint16 key_len = 0;
+
+    unsigned rsa_size = 0;
+    unsigned slice_size = 0;
+    
+    unsigned char key[BUFFER_SIZE] = {0};
+    unsigned decrypt_len = 0;
+    int len = 0;
+    unsigned char* from = 0;
+    unsigned char* to = 0;
+    uint32 i = 0;
+
     if (ReadRemainlen(pkg, &remainlen))
 	return ERR_UNPACK_ENCRYPT_RESP;
 
-    uint16 key_len;
     if (ReadUint16(pkg, &key_len))
 	return ERR_UNPACK_ENCRYPT_RESP;
     
     if (remainlen != key_len + 2)
 	return ERR_UNPACK_ENCRYPT_RESP;
 
-    unsigned rsa_size = RSA_size(g_rsa);
-    unsigned slice_size = rsa_size - RSA_PADDING_LEN;
+    rsa_size = RSA_size(g_rsa);
+    slice_size = rsa_size - RSA_PADDING_LEN;
     
-    unsigned char key[BUFFER_SIZE] = {0};
-    unsigned decrypt_len = 0;
-    int len = 0;
-    unsigned char* from = pkg->_data + pkg->_read_pos;
-    unsigned char* to = key;
+    from = pkg->_data + pkg->_read_pos;
+    to = key;
     
-    uint32 i = 0;
     for (i=0; i<key_len; i+=rsa_size){
 	len = RSA_private_decrypt(rsa_size, from+i, to, 
 				  g_rsa, RSA_PKCS1_PADDING);
@@ -115,7 +126,6 @@ int32 UnpackEncryptResp(EdpPacket* pkg){
 	to += len;
     }
 
-    printf("%s\n", key);
     switch (g_encrypt_alg_type){
     case kTypeAes:
 	if(AES_set_encrypt_key(key, AES_KEY_LEN, &g_aes_encrypt_key) < 0) {
@@ -137,19 +147,32 @@ int32 UnpackEncryptResp(EdpPacket* pkg){
 
 /*************** AES ***************/
 static int aes_encrypt(EdpPacket* pkg, int remain_pos){
-    /* 加密 */
-    uint32 in_len = pkg->_write_pos - remain_pos;
-    unsigned char* in = pkg->_data + remain_pos;
-    /* AES 支持加密后数据存放在加密前的buffer中 */
-    unsigned char* out = in;
-    
-    size_t div = in_len / AES_BLOCK_SIZE;
-    size_t mod = in_len % AES_BLOCK_SIZE;
+    uint32 in_len = 0;
+    unsigned char* in = NULL;
+    unsigned char* out = NULL;
+    size_t div = 0;
+    size_t mod = 0;
     size_t adder = 0;
     size_t block = 0;
+    size_t padding_len = 0;
+    unsigned char* padding_addr = NULL;
+    size_t len_aft_enc =  0;
+    uint8 tmp_buf[5] = {0};
+    EdpPacket tmp_pkg;
+    int diff = 0;
+    int i = 0;
 
-    size_t padding_len = AES_BLOCK_SIZE - mod;
-    unsigned char* padding_addr = in + div * AES_BLOCK_SIZE;
+    /* 加密 */
+    in_len = pkg->_write_pos - remain_pos;
+    in = pkg->_data + remain_pos;
+    /* AES 支持加密后数据存放在加密前的buffer中 */
+    out = in;
+    
+    div = in_len / AES_BLOCK_SIZE;
+    mod = in_len % AES_BLOCK_SIZE;
+
+    padding_len = AES_BLOCK_SIZE - mod;
+    padding_addr = in + div * AES_BLOCK_SIZE;
     if (mod){
 	padding_addr += mod;
     }
@@ -174,17 +197,15 @@ static int aes_encrypt(EdpPacket* pkg, int remain_pos){
      * 利用一个临时的EdpPacket来测试加密后remainlen的长度是否发生改变
      * 若改变，则加密后的数据应该依次往后移，以为remainlen留出足够空间
      */
-    size_t len_aft_enc =  div * AES_BLOCK_SIZE;
+    len_aft_enc =  div * AES_BLOCK_SIZE;
 
-    char tmp_buf[5];
-    EdpPacket tmp_pkg;
     tmp_pkg._data = tmp_buf;
     tmp_pkg._write_pos = 1;
     tmp_pkg._read_pos = 0;
     WriteRemainlen(&tmp_pkg, len_aft_enc);
-    int diff = tmp_pkg._write_pos - remain_pos;
+    diff = tmp_pkg._write_pos - remain_pos;
     if (diff > 0){
-	int i = len_aft_enc;
+	i = len_aft_enc;
 	for (; i>0; i--){
 	    *(in + i + diff - 1)  = *(in + i - 1);
 	}
@@ -199,19 +220,27 @@ static int aes_encrypt(EdpPacket* pkg, int remain_pos){
 }
 
 static int aes_decrypt(EdpPacket* pkg, int remain_pos){
-    size_t in_len = pkg->_write_pos - pkg->_read_pos;
-    unsigned char* in = pkg->_data + pkg->_read_pos;
-    unsigned char* out = in;
-
+    size_t in_len = 0;
+    unsigned char* in = NULL;
+    unsigned char* out = NULL;
     size_t offset = 0;
+    size_t padding_len = 0;
+    uint32 len_aft_dec = 0;
+    uint8 tmp_buf[5] = {0};
+    EdpPacket tmp_pkg;
+    int diff = 0;
+    int i = 0;
+
+    in_len = pkg->_write_pos - pkg->_read_pos;
+    in = pkg->_data + pkg->_read_pos;
+    out = in;
+
     for (offset=0; (offset+AES_BLOCK_SIZE)<=in_len; offset+=AES_BLOCK_SIZE){
 	AES_decrypt(in + offset, out + offset, &g_aes_decrypt_key);
     }
 
-    size_t padding_len = *(in + offset -1) - '0';
+    padding_len = *(in + offset -1) - '0';
     if (padding_len > AES_BLOCK_SIZE){
-	printf(" padding_len = %d %02x %d\n", 
-	       padding_len, *(in + offset - 1), AES_BLOCK_SIZE);
 	return -1;
     }
 
@@ -219,17 +248,15 @@ static int aes_decrypt(EdpPacket* pkg, int remain_pos){
      * 利用一个临时的EdpPacket来测试加密后remainlen的长度是否发生改变
      * 若改变，则解密后的数据应该依次往前移，以消除多余空间
      */
-    uint32 len_aft_dec = offset - padding_len;
-    char tmp_buf[5];
-    EdpPacket tmp_pkg;
+    len_aft_dec = offset - padding_len;
     tmp_pkg._data = tmp_buf;
     tmp_pkg._write_pos = 1;
     tmp_pkg._read_pos = 0;
     WriteRemainlen(&tmp_pkg, len_aft_dec);
 
-    int diff = remain_pos - tmp_pkg._write_pos;
+    diff = remain_pos - tmp_pkg._write_pos;
     if (diff > 0){
-	int i = 0;
+	i = 0;
 	for (i=0; i<len_aft_dec; i++){
 	    *(in + i - diff)  = *(in + i);
 	}

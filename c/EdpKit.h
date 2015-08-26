@@ -6,7 +6,7 @@
 #else
 	#define EDPKIT_DLL
 #endif
- 
+
 #include "Common.h"
 #include "cJSON.h"
 /*
@@ -75,13 +75,17 @@ extern "C" {
 /* 加密响应 */
 #define ENCRYPTRESP         0xF0
 
+#ifndef NULL
+#define NULL (void*)0
+#endif
+
 /* SAVEDATA消息支持的格式类型 */
 typedef enum {
     kTypeFullJson = 0x01,
     kTypeBin = 0x02,
     kTypeSimpleJsonWithoutTime = 0x03,
     kTypeSimpleJsonWithTime = 0x04,
-    kTypeString = 0x05,
+    kTypeString = 0x05
 }SaveDataType;
 
 /*-------------发送buffer, 接收buffer, EDP包结构定义-------------------------*/
@@ -591,7 +595,7 @@ EDPKIT_DLL int32 UnpackSavedataSimpleString(EdpPacket* pkg, char** output);
  *          为空        EDP协议包生成失败 
  */
 EdpPacket* PacketSavedataBin(const char* dst_devid, 
-        cJSON* desc_obj, uint8* bin_data, uint32 bin_len);
+        cJSON* desc_obj, const uint8* bin_data, uint32 bin_len);
 /* 
  * 函数名:  PacketSavedataBinStr
  * 功能:    打包 设备到设备云的EDP协议包, 存储数据(bin格式数据)
