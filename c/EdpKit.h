@@ -1,10 +1,10 @@
-#ifndef __EDP_KIT_H__
+ï»¿#ifndef __EDP_KIT_H__
 #define __EDP_KIT_H__
 
 #ifdef EDPKIT_EXPORTS
-	#define EDPKIT_DLL __declspec(dllexport)
+#define EDPKIT_DLL __declspec(dllexport)
 #else
-	#define EDPKIT_DLL
+#define EDPKIT_DLL
 #endif
 
 #include "Common.h"
@@ -13,11 +13,17 @@
  * history
  * 2015-06-01 v1.0.1 wululu fix bug: malloc for string, MUST memset to 0
  * 2015-07-10 v1.1.0 wusongwei add UnpackCmdReq() and PacketCmdResp()
- * 2015-07-13 v1.1.1 wululu Ôö¼Ó·â×°jsonµÄ½Ó¿Ú, windows°æ±¾dll
- * 2015-07-13 v1.1.2 wululu Ö§³ÖdoubleºÍstringÀàĞÍµÄ´ò°üº¯ÊıºÍ½â°üº¯Êı
- * 2015-07-15 v1.1.3 wusongwei Ìí¼ÓSAVEACKÏìÓ¦
- * 2015-07-20 v1.1.4 wusongwei Ìí¼Ó/ĞŞ¸ÄSAVEDATAÏûÏ¢µÄ´ò°ü/½â°üº¯Êı
+ * 2015-07-13 v1.1.1 wululu å¢åŠ å°è£…jsonçš„æ¥å£, windowsç‰ˆæœ¬dll
+ * 2015-07-13 v1.1.2 wululu æ”¯æŒdoubleå’Œstringç±»å‹çš„æ‰“åŒ…å‡½æ•°å’Œè§£åŒ…å‡½æ•°
+ * 2015-07-15 v1.1.3 wusongwei æ·»åŠ SAVEACKå“åº”
+ * 2015-07-20 v1.1.4 wusongwei æ·»åŠ /ä¿®æ”¹SAVEDATAæ¶ˆæ¯çš„æ‰“åŒ…/è§£åŒ…å‡½æ•°
+ * 2016-04-08 v1.1.5 wangmanjie æ·»åŠ savedata ç±»å‹6ã€7çš„æ‰“åŒ…è§£åŒ…å‡½æ•°
  */
+
+#if defined(_WIN32) || defined(__WIN32__) || defined(WIN32)
+#define localtime_r(a,b)	localtime_s(b,a)
+#endif
+
 
 #ifdef __cplusplus
 extern "C" {
@@ -29,7 +35,9 @@ extern "C" {
 #define BUFFER_SIZE         (0x01<<20) 
 #define PROTOCOL_NAME       "EDP"
 #define PROTOCOL_VERSION    1
-/*----------------------------´íÎóÂë-----------------------------------------*/
+
+#define MAX_FLOAT_DPS_COUNT 1000
+/*----------------------------é”™è¯¯ç -----------------------------------------*/
 #define ERR_UNPACK_CONNRESP_REMAIN              -1000
 #define ERR_UNPACK_CONNRESP_FLAG                -1001
 #define ERR_UNPACK_CONNRESP_RTN                 -1002
@@ -51,248 +59,333 @@ extern "C" {
 #define ERR_UNPACK_ENCRYPT_RESP                 -1032
 #define ERR_UNPACK_SAVEDATA_ACK                 -1033
 
-/*----------------------------ÏûÏ¢ÀàĞÍ---------------------------------------*/
-/* Á¬½ÓÇëÇó */
+#define ERR_UNPACK_SAVED_STR_WITH_TIME		-1034
+#define ERR_UNPACK_SAVED_FLOAT_WITH_TIME    -1035
+
+/*----------------------------æ¶ˆæ¯ç±»å‹---------------------------------------*/
+/* è¿æ¥è¯·æ±‚ */
 #define CONNREQ             0x10
-/* Á¬½ÓÏìÓ¦ */
+/* è¿æ¥å“åº” */
 #define CONNRESP            0x20
-/* ×ª·¢(Í¸´«)Êı¾İ */
+/* è½¬å‘(é€ä¼ )æ•°æ® */
 #define PUSHDATA            0x30
-/* ´æ´¢(×ª·¢)Êı¾İ */
+/* å­˜å‚¨(è½¬å‘)æ•°æ® */
 #define SAVEDATA            0x80
-/* ´æ´¢È·ÈÏ */
+/* å­˜å‚¨ç¡®è®¤ */
 #define SAVEACK             0x90
-/* ÃüÁîÇëÇó */
+/* å‘½ä»¤è¯·æ±‚ */
 #define CMDREQ              0xA0
-/* ÃüÁîÏìÓ¦ */
+/* å‘½ä»¤å“åº” */
 #define CMDRESP             0xB0
-/* ĞÄÌøÇëÇó */
+/* å¿ƒè·³è¯·æ±‚ */
 #define PINGREQ             0xC0
-/* ĞÄÌøÏìÓ¦ */
+/* å¿ƒè·³å“åº” */
 #define PINGRESP            0xD0
-/* ¼ÓÃÜÇëÇó */
+/* åŠ å¯†è¯·æ±‚ */
 #define ENCRYPTREQ          0xE0
-/* ¼ÓÃÜÏìÓ¦ */
+/* åŠ å¯†å“åº” */
 #define ENCRYPTRESP         0xF0
 
 #ifndef NULL
 #define NULL (void*)0
 #endif
 
-/* SAVEDATAÏûÏ¢Ö§³ÖµÄ¸ñÊ½ÀàĞÍ */
+/* SAVEDATAæ¶ˆæ¯æ”¯æŒçš„æ ¼å¼ç±»å‹ */
 typedef enum {
     kTypeFullJson = 0x01,
     kTypeBin = 0x02,
     kTypeSimpleJsonWithoutTime = 0x03,
     kTypeSimpleJsonWithTime = 0x04,
-    kTypeString = 0x05
+    kTypeString = 0x05,
+    kTypeStringWithTime = 0x06,
+    kTypeFloatWithTime  = 0x07
 }SaveDataType;
 
-/*-------------·¢ËÍbuffer, ½ÓÊÕbuffer, EDP°ü½á¹¹¶¨Òå-------------------------*/
-EDPKIT_DLL 
+/*å­˜å‚¨è½¬å‘æ•°æ®ç±»å‹6ä¸­æ—¶é—´ç»“æ„ï¼Œ*/
+EDPKIT_DLL
+typedef struct stDataTime
+{
+	uint16	year;	/*å¹´ï¼›å¦‚2016*/
+	uint8	month;	/*æœˆï¼›å¦‚4*/
+	uint8	day;	/*æ—¥ï¼›å¦‚5*/
+	uint8	hour;	/*æ—¶ï¼›å¦‚14*/
+	uint8	minute;	/*åˆ†ï¼›å¦‚30*/
+	uint8	second;	/*ç§’ï¼›å¦‚28*/
+}DataTime,*LPDataTime;
+
+/*å­˜å‚¨è½¬å‘æ•°æ®ç±»å‹7ç»“æ„ä½“*/
+EDPKIT_DLL
+typedef struct stFloatDPS
+{
+    uint16  ds_id;  /*æ•°æ®æµID*/
+    float   f_data; /*float æ•°æ®*/
+}FloatDPS;
+
+/*-------------å‘é€buffer, æ¥æ”¶buffer, EDPåŒ…ç»“æ„å®šä¹‰-------------------------*/
+EDPKIT_DLL
 typedef struct Buffer
 {
-    uint8*  _data;          /* bufferÊı¾İ */
-    uint32  _write_pos;     /* bufferĞ´ÈëÎ»ÖÃ */
-    uint32  _read_pos;      /* buffer¶ÁÈ¡Î»ÖÃ */
-    uint32  _capacity;      /* bufferÈİÁ¿ */
+uint8*  _data;          /* bufferæ•°æ® */
+uint32  _write_pos;     /* bufferå†™å…¥ä½ç½® */
+uint32  _read_pos;      /* bufferè¯»å–ä½ç½® */
+uint32  _capacity;      /* bufferå®¹é‡ */
 }Buffer, SendBuffer, RecvBuffer, EdpPacket;
-/*-----------------------------²Ù×÷BufferµÄ½Ó¿Ú------------------------------*/
+/*-----------------------------æ“ä½œBufferçš„æ¥å£------------------------------*/
 /* 
- * º¯ÊıÃû:  NewBuffer
- * ¹¦ÄÜ:    Éú³ÉBuffer
- * ËµÃ÷:    Ò»°ãÇé¿öÏÂ, NewBufferºÍDeleteBufferÓ¦¸Ã³É¶Ô³öÏÖ
- * ²ÎÊı:    ÎŞ
- * ·µ»ØÖµ:  ÀàĞÍ (Buffer*)
- *          ·µ»ØÖµ·Ç¿Õ Éú³ÉBuffer³É¹¦, ·µ»ØÕâ¸öBufferµÄÖ¸Õë
- *          ·µ»ØÖµÎª¿Õ Éú³ÉBufferÊ§°Ü, ÄÚ´æ²»¹»
+ * å‡½æ•°å:  NewBuffer
+ * åŠŸèƒ½:    ç”ŸæˆBuffer
+ * è¯´æ˜:    ä¸€èˆ¬æƒ…å†µä¸‹, NewBufferå’ŒDeleteBufferåº”è¯¥æˆå¯¹å‡ºç°
+ * å‚æ•°:    æ— 
+ * è¿”å›å€¼:  ç±»å‹ (Buffer*)
+ *          è¿”å›å€¼éç©º ç”ŸæˆBufferæˆåŠŸ, è¿”å›è¿™ä¸ªBufferçš„æŒ‡é’ˆ
+ *          è¿”å›å€¼ä¸ºç©º ç”ŸæˆBufferå¤±è´¥, å†…å­˜ä¸å¤Ÿ
  */
-EDPKIT_DLL Buffer* NewBuffer();
+EDPKIT_DLL
+Buffer* NewBuffer();
 /* 
- * º¯ÊıÃû:  DeleteBuffer
- * ¹¦ÄÜ:    Ïú»ÙBuffer
- * ËµÃ÷:    Ò»°ãÇé¿öÏÂ, NewBufferºÍDeleteBufferÓ¦¸Ã³É¶Ô³öÏÖ
- * ²ÎÊı:    buf     Ò»¸öBufferµÄÖ¸ÕëµÄÖ¸Õë
- * ·µ»ØÖµ:  ÎŞ
+ * å‡½æ•°å:  DeleteBuffer
+ * åŠŸèƒ½:    é”€æ¯Buffer
+ * è¯´æ˜:    ä¸€èˆ¬æƒ…å†µä¸‹, NewBufferå’ŒDeleteBufferåº”è¯¥æˆå¯¹å‡ºç°
+ * å‚æ•°:    buf     ä¸€ä¸ªBufferçš„æŒ‡é’ˆçš„æŒ‡é’ˆ
+ * è¿”å›å€¼:  æ— 
  */
-EDPKIT_DLL void DeleteBuffer(Buffer** buf);
+EDPKIT_DLL
+void DeleteBuffer(Buffer** buf);
 /* 
- * º¯ÊıÃû:  CheckCapacity
- * ¹¦ÄÜ:    ¼ì²éBufferÊÇ·ñÄÜ¹»Ğ´Èë³¤¶ÈÎªlenµÄ×Ö½ÚÁ÷, 
- *          Èç¹ûBufferµÄÈİÁ¿²»¹», ×Ô¶¯³É±¶À©Õ¹BufferµÄÈİÁ¿(²»Ó°ÏìBufferÊı¾İ)
- * ²ÎÊı:    buf     ĞèÒªĞ´ÈëBufferµÄÖ¸Õë
- *          len     ÆÚÍûĞ´ÈëµÄ³¤¶È
- * ·µ»ØÖµ:  ÀàĞÍ (int32)
- *          <0      Ê§°Ü, ÄÚ´æ²»¹»
- *          =0      ³É¹¦
+ * å‡½æ•°å:  CheckCapacity
+ * åŠŸèƒ½:    æ£€æŸ¥Bufferæ˜¯å¦èƒ½å¤Ÿå†™å…¥é•¿åº¦ä¸ºlençš„å­—èŠ‚æµ, 
+ *          å¦‚æœBufferçš„å®¹é‡ä¸å¤Ÿ, è‡ªåŠ¨æˆå€æ‰©å±•Bufferçš„å®¹é‡(ä¸å½±å“Bufferæ•°æ®)
+ * å‚æ•°:    buf     éœ€è¦å†™å…¥Bufferçš„æŒ‡é’ˆ
+ *          len     æœŸæœ›å†™å…¥çš„é•¿åº¦
+ * è¿”å›å€¼:  ç±»å‹ (int32)
+ *          <0      å¤±è´¥, å†…å­˜ä¸å¤Ÿ
+ *          =0      æˆåŠŸ
  */
-EDPKIT_DLL int32 CheckCapacity(Buffer* buf, uint32 len);
+EDPKIT_DLL
+int32 CheckCapacity(Buffer* buf, uint32 len);
 
-/*------------------------¶ÁÈ¡EDP°üÊı¾İµÄ½Ó¿Ú-------------------------------*/
+/*------------------------è¯»å–EDPåŒ…æ•°æ®çš„æ¥å£-------------------------------*/
 /* 
- * º¯ÊıÃû:  ReadByte
- * ¹¦ÄÜ:    °´EDPĞ­Òé, ´ÓBuffer(°ü)ÖĞ¶ÁÈ¡Ò»¸ö×Ö½ÚÊı¾İ
- * ²ÎÊı:    pkg     EDP°ü
- *          val     Êı¾İ(Ò»¸ö×Ö½Ú)
- * ·µ»ØÖµ:  ÀàĞÍ (int32)
- *          <0      Ê§°Ü, pkgÖĞÎŞÊı¾İ
- *          =0      ³É¹¦
+ * å‡½æ•°å:  ReadByte
+ * åŠŸèƒ½:    æŒ‰EDPåè®®, ä»Buffer(åŒ…)ä¸­è¯»å–ä¸€ä¸ªå­—èŠ‚æ•°æ®
+ * å‚æ•°:    pkg     EDPåŒ…
+ *          val     æ•°æ®(ä¸€ä¸ªå­—èŠ‚)
+ * è¿”å›å€¼:  ç±»å‹ (int32)
+ *          <0      å¤±è´¥, pkgä¸­æ— æ•°æ®
+ *          =0      æˆåŠŸ
  */
-EDPKIT_DLL int32 ReadByte(EdpPacket* pkg, uint8* val);
+EDPKIT_DLL
+int32 ReadByte(EdpPacket* pkg, uint8* val);
 /* 
- * º¯ÊıÃû:  ReadBytes
- * ¹¦ÄÜ:    °´EDPĞ­Òé, ´ÓBuffer(°ü)ÖĞ¶ÁÈ¡count¸ö×Ö½ÚÊı¾İ
- * ËµÃ÷:    valÊÇmalloc³öÀ´µÄ, ĞèÒª¿Í»§¶Ë×Ô¼ºfree 
- * ²ÎÊı:    pkg     EDP°ü
- *          val     Êı¾İ(count¸ö×Ö½Ú)
- *          count   ×Ö½ÚÊı
- * ·µ»ØÖµ:  ÀàĞÍ (int32)
- *          <0      Ê§°Ü, pkgÖĞÎŞÊı¾İ
- *          =0      ³É¹¦
+ * å‡½æ•°å:  ReadBytes
+ * åŠŸèƒ½:    æŒ‰EDPåè®®, ä»Buffer(åŒ…)ä¸­è¯»å–countä¸ªå­—èŠ‚æ•°æ®
+ * è¯´æ˜:    valæ˜¯mallocå‡ºæ¥çš„, éœ€è¦å®¢æˆ·ç«¯è‡ªå·±free 
+ * å‚æ•°:    pkg     EDPåŒ…
+ *          val     æ•°æ®(countä¸ªå­—èŠ‚)
+ *          count   å­—èŠ‚æ•°
+ * è¿”å›å€¼:  ç±»å‹ (int32)
+ *          <0      å¤±è´¥, pkgä¸­æ— æ•°æ®
+ *          =0      æˆåŠŸ
  */
-EDPKIT_DLL int32 ReadBytes(EdpPacket* pkg, uint8** val, uint32 count);
+EDPKIT_DLL
+int32 ReadBytes(EdpPacket* pkg, uint8** val, uint32 count);
 /* 
- * º¯ÊıÃû:  ReadUint16
- * ¹¦ÄÜ:    °´EDPĞ­Òé, ´ÓBuffer(°ü)ÖĞ¶ÁÈ¡uint16Öµ
- * ²ÎÊı:    pkg     EDP°ü
- *          val     uint16Öµ
- * ·µ»ØÖµ:  ÀàĞÍ (int32)
- *          <0      Ê§°Ü, pkgÖĞÎŞÊı¾İ
- *          =0      ³É¹¦
+ * å‡½æ•°å:  ReadUint16
+ * åŠŸèƒ½:    æŒ‰EDPåè®®, ä»Buffer(åŒ…)ä¸­è¯»å–uint16å€¼
+ * å‚æ•°:    pkg     EDPåŒ…
+ *          val     uint16å€¼
+ * è¿”å›å€¼:  ç±»å‹ (int32)
+ *          <0      å¤±è´¥, pkgä¸­æ— æ•°æ®
+ *          =0      æˆåŠŸ
  */
-EDPKIT_DLL int32 ReadUint16(EdpPacket* pkg, uint16* val);
+EDPKIT_DLL
+int32 ReadUint16(EdpPacket* pkg, uint16* val);
 /* 
- * º¯ÊıÃû:  ReadUint32
- * ¹¦ÄÜ:    °´EDPĞ­Òé, ´ÓBuffer(°ü)ÖĞ¶ÁÈ¡uint32Öµ
- * ²ÎÊı:    pkg     EDP°ü
- *          val     uint32Öµ
- * ·µ»ØÖµ:  ÀàĞÍ (int32)
- *          <0      Ê§°Ü, pkgÖĞÎŞÊı¾İ
- *          =0      ³É¹¦
+ * å‡½æ•°å:  ReadUint32
+ * åŠŸèƒ½:    æŒ‰EDPåè®®, ä»Buffer(åŒ…)ä¸­è¯»å–uint32å€¼
+ * å‚æ•°:    pkg     EDPåŒ…
+ *          val     uint32å€¼
+ * è¿”å›å€¼:  ç±»å‹ (int32)
+ *          <0      å¤±è´¥, pkgä¸­æ— æ•°æ®
+ *          =0      æˆåŠŸ
  */
-EDPKIT_DLL int32 ReadUint32(EdpPacket* pkg, uint32* val);
+EDPKIT_DLL
+int32 ReadUint32(EdpPacket* pkg, uint32* val);
+
 /* 
- * º¯ÊıÃû:  ReadStr
- * ¹¦ÄÜ:    °´EDPĞ­Òé, ´ÓBuffer(°ü)ÖĞ¶ÁÈ¡×Ö·û´®, ÒÔ\0½áÎ²
- * ²ÎÊı:    pkg     EDP°ü
- *          val     ×Ö·û´®
- * ËµÃ÷:    valÊÇmalloc³öÀ´µÄ, ĞèÒª¿Í»§¶Ë×Ô¼ºfree 
- * ·µ»ØÖµ:  ÀàĞÍ (int32)
- *          <0      Ê§°Ü, pkgÖĞÎŞÊı¾İ
- *          =0      ³É¹¦
+ * å‡½æ•°å:  ReadFloat
+ * åŠŸèƒ½:    æŒ‰EDPåè®®, ä»Buffer(åŒ…)ä¸­è¯»å–floatå€¼
+ * å‚æ•°:    pkg     EDPåŒ…
+ *                 val     floatå€¼,æ­¤å¤„å‡å®šæœºå™¨ä¸ºå°ç«¯(é«˜å­—èŠ‚åœ¨å‰ï¼Œä½å­—èŠ‚åœ¨å)
+ *                          è‹¥ä¸ºå¤§ç«¯æœºå™¨ï¼Œå¿…é¡»å°†è¯»å‡ºçš„floatå››å­—èŠ‚é¢ å€’é¡ºåºåå†ä½¿ç”¨
+ * è¿”å›å€¼:  ç±»å‹ (int32)
+ *          <0      å¤±è´¥, pkgä¸­æ— æ•°æ®
+ *          =0      æˆåŠŸ
  */
-EDPKIT_DLL int32 ReadStr(EdpPacket* pkg, char** val);
+EDPKIT_DLL
+int32 ReadFloat(EdpPacket* pkg, float* val);
 /* 
- * º¯ÊıÃû:  ReadRemainlen
- * ¹¦ÄÜ:    °´EDPĞ­Òé, ´ÓBuffer(°ü)ÖĞremainlen
- * ËµÃ÷:    remainlenÊÇEDPĞ­ÒéÖĞµÄ¸ÅÄî, ÊÇÒ»¸öEDP°üÉíµÄ³¤¶È
- * ²ÎÊı:    pkg     EDP°ü
+ * å‡½æ•°å:  ReadStr
+ * åŠŸèƒ½:    æŒ‰EDPåè®®, ä»Buffer(åŒ…)ä¸­è¯»å–å­—ç¬¦ä¸², ä»¥\0ç»“å°¾
+ * å‚æ•°:    pkg     EDPåŒ…
+ *          val     å­—ç¬¦ä¸²
+ * è¯´æ˜:    valæ˜¯mallocå‡ºæ¥çš„, éœ€è¦å®¢æˆ·ç«¯è‡ªå·±free 
+ * è¿”å›å€¼:  ç±»å‹ (int32)
+ *          <0      å¤±è´¥, pkgä¸­æ— æ•°æ®
+ *          =0      æˆåŠŸ
+ */
+EDPKIT_DLL
+int32 ReadStr(EdpPacket* pkg, char** val);
+
+
+/* 
+ * å‡½æ•°å:  ReadDateTime
+ * åŠŸèƒ½:    æŒ‰EDPåè®®, ä»Buffer(åŒ…)ä¸­è¯»å–ä¸€ä¸ªæ—¥æœŸæ—¶é—´æ ¼å¼
+ * å‚æ•°:    pkg:     EDPåŒ…
+ *        	 	  val  :    åŒ…å«å¹´æœˆæ—¥æ—¶åˆ†ç§’çš„æ—¶é—´æ ¼å¼ç»“æ„ä½“ æŒ‡é’ˆ
+ * è¿”å›å€¼:  ç±»å‹ (int32)
+ *          <0      å¤±è´¥, pkgä¸­æ— æ•°æ®
+ *          =0      æˆåŠŸ
+ */
+EDPKIT_DLL
+int32 ReadDataTime(EdpPacket* pkg, LPDataTime val);
+
+
+/* 
+ * å‡½æ•°å:  ReadRemainlen
+ * åŠŸèƒ½:    æŒ‰EDPåè®®, ä»Buffer(åŒ…)ä¸­remainlen
+ * è¯´æ˜:    remainlenæ˜¯EDPåè®®ä¸­çš„æ¦‚å¿µ, æ˜¯ä¸€ä¸ªEDPåŒ…èº«çš„é•¿åº¦
+ * å‚æ•°:    pkg     EDPåŒ…
  *          len_val remainlen
- * ·µ»ØÖµ:  ÀàĞÍ (int32)
- *          <0      Ê§°Ü, pkgÖĞÎŞÊı¾İ
- *          =0      ³É¹¦
+ * è¿”å›å€¼:  ç±»å‹ (int32)
+ *          <0      å¤±è´¥, pkgä¸­æ— æ•°æ®
+ *          =0      æˆåŠŸ
  */
-EDPKIT_DLL int32 ReadRemainlen(EdpPacket* pkg, uint32* len_val);
+EDPKIT_DLL
+int32 ReadRemainlen(EdpPacket* pkg, uint32* len_val);
 
-/*------------------------Êı¾İĞ´ÈëEDP°üµÄ½Ó¿Ú-------------------------------*/
+/*------------------------æ•°æ®å†™å…¥EDPåŒ…çš„æ¥å£-------------------------------*/
 /*
- * ËµÃ÷:    Ä¿Ç°²»Ö§³ÖÒ»¸ö°ü¼´ÔÚĞ´ÈëÓÖÔÚ¶ÁÈ¡, Òò´Ë, Ö»ÓĞ¶ÔÓÚ_read_posÎª0µÄ°ü²ÅÄÜ±»Ğ´Èë
+ * è¯´æ˜:    ç›®å‰ä¸æ”¯æŒä¸€ä¸ªåŒ…å³åœ¨å†™å…¥åˆåœ¨è¯»å–, å› æ­¤, åªæœ‰å¯¹äº_read_posä¸º0çš„åŒ…æ‰èƒ½è¢«å†™å…¥
  */
 /* 
- * º¯ÊıÃû:  WriteByte
- * ¹¦ÄÜ:    °´EDPĞ­Òé, ½«Ò»¸ö×Ö½ÚÊı¾İĞ´ÈëBuffer(°ü)ÖĞ
- * ²ÎÊı:    pkg     EDP°ü
- *          byte    Êı¾İ(Ò»¸ö×Ö½Ú)
- * ·µ»ØÖµ:  ÀàĞÍ (int32)
- *          <0      Ê§°Ü, pkgÖĞÎŞÊı¾İ
- *          =0      ³É¹¦
+ * å‡½æ•°å:  WriteByte
+ * åŠŸèƒ½:    æŒ‰EDPåè®®, å°†ä¸€ä¸ªå­—èŠ‚æ•°æ®å†™å…¥Buffer(åŒ…)ä¸­
+ * å‚æ•°:    pkg     EDPåŒ…
+ *          byte    æ•°æ®(ä¸€ä¸ªå­—èŠ‚)
+ * è¿”å›å€¼:  ç±»å‹ (int32)
+ *          <0      å¤±è´¥, pkgä¸­æ— æ•°æ®
+ *          =0      æˆåŠŸ
  */
-EDPKIT_DLL int32 WriteByte(Buffer* buf, uint8 byte);
+EDPKIT_DLL
+int32 WriteByte(Buffer* buf, uint8 byte);
 /* 
- * º¯ÊıÃû:  WriteBytes
- * ¹¦ÄÜ:    °´EDPĞ­Òé, ½«count¸ö×Ö½ÚÊı¾İĞ´ÈëBuffer(°ü)ÖĞ
- * ²ÎÊı:    pkg     EDP°ü
- *          bytes   Êı¾İ
- *          count   ×Ö½ÚÊı
- * ·µ»ØÖµ:  ÀàĞÍ (int32)
- *          <0      Ê§°Ü, pkgÖĞÎŞÊı¾İ
- *          =0      ³É¹¦
+ * å‡½æ•°å:  WriteBytes
+ * åŠŸèƒ½:    æŒ‰EDPåè®®, å°†countä¸ªå­—èŠ‚æ•°æ®å†™å…¥Buffer(åŒ…)ä¸­
+ * å‚æ•°:    pkg     EDPåŒ…
+ *          bytes   æ•°æ®
+ *          count   å­—èŠ‚æ•°
+ * è¿”å›å€¼:  ç±»å‹ (int32)
+ *          <0      å¤±è´¥, pkgä¸­æ— æ•°æ®
+ *          =0      æˆåŠŸ
  */
-EDPKIT_DLL int32 WriteBytes(Buffer* buf, const void* bytes, uint32 count);
+EDPKIT_DLL
+int32 WriteBytes(Buffer* buf, const void* bytes, uint32 count);
 /* 
- * º¯ÊıÃû:  WriteUint16
- * ¹¦ÄÜ:    °´EDPĞ­Òé, ½«uint16Ğ´ÈëBuffer(°ü)ÖĞ
- * ²ÎÊı:    pkg     EDP°ü
- *          val     uint16Êı¾İ
- * ·µ»ØÖµ:  ÀàĞÍ (int32)
- *          <0      Ê§°Ü, pkgÖĞÎŞÊı¾İ
- *          =0      ³É¹¦
+ * å‡½æ•°å:  WriteUint16
+ * åŠŸèƒ½:    æŒ‰EDPåè®®, å°†uint16å†™å…¥Buffer(åŒ…)ä¸­
+ * å‚æ•°:    pkg     EDPåŒ…
+ *          val     uint16æ•°æ®
+ * è¿”å›å€¼:  ç±»å‹ (int32)
+ *          <0      å¤±è´¥, pkgä¸­æ— æ•°æ®
+ *          =0      æˆåŠŸ
  */
-EDPKIT_DLL int32 WriteUint16(Buffer* buf, uint16 val);
+EDPKIT_DLL
+int32 WriteUint16(Buffer* buf, uint16 val);
 /* 
- * º¯ÊıÃû:  WriteUint32
- * ¹¦ÄÜ:    °´EDPĞ­Òé, ½«uint32Ğ´ÈëBuffer(°ü)ÖĞ
- * ²ÎÊı:    pkg     EDP°ü
- *          val     uint32Êı¾İ
- * ·µ»ØÖµ:  ÀàĞÍ (int32)
- *          <0      Ê§°Ü, pkgÖĞÎŞÊı¾İ
- *          =0      ³É¹¦
+ * å‡½æ•°å:  WriteUint32
+ * åŠŸèƒ½:    æŒ‰EDPåè®®, å°†uint32å†™å…¥Buffer(åŒ…)ä¸­
+ * å‚æ•°:    pkg     EDPåŒ…
+ *          val     uint32æ•°æ®
+ * è¿”å›å€¼:  ç±»å‹ (int32)
+ *          <0      å¤±è´¥, pkgä¸­æ— æ•°æ®
+ *          =0      æˆåŠŸ
  */
-EDPKIT_DLL int32 WriteUint32(Buffer* buf, uint32 val);
+EDPKIT_DLL
+int32 WriteUint32(Buffer* buf, uint32 val);
+
 /* 
- * º¯ÊıÃû:  WriteStr
- * ¹¦ÄÜ:    °´EDPĞ­Òé, ½«×Ö·û´®Ğ´ÈëBuffer(°ü)ÖĞ
- * ²ÎÊı:    pkg     EDP°ü
- *          val     ×Ö·û´®
- * ·µ»ØÖµ:  ÀàĞÍ (int32)
- *          <0      Ê§°Ü, pkgÖĞÎŞÊı¾İ
- *          =0      ³É¹¦
+ * å‡½æ•°å:  WriteFloat
+ * åŠŸèƒ½:    æŒ‰EDPåè®®, å°†ä¸€ä¸ªfloatå€¼å†™å…¥Bufferä¸­
+ * å‚æ•°:    pkg     EDPåŒ…
+ *                 val     floatå€¼,æ­¤å¤„å‡å®šæœºå™¨ä¸ºå°ç«¯(é«˜å­—èŠ‚åœ¨å‰ï¼Œä½å­—èŠ‚åœ¨å)
+ *                          è‹¥ä¸ºå¤§ç«¯æœºå™¨ï¼Œå¿…è®¸floatå››å­—èŠ‚é¢ å€’é¡ºåºåå†å­˜å‚¨
+ * è¿”å›å€¼:  ç±»å‹ (int32)
+ *          <0      å¤±è´¥, pkgä¸­æ— æ•°æ®
+ *          =0      æˆåŠŸ
  */
-EDPKIT_DLL int32 WriteStr(Buffer* buf, const char *str);
+EDPKIT_DLL
+int32 WriteFloat(EdpPacket* pkg, float val);
+
+
 /* 
- * º¯ÊıÃû:  WriteRemainlen 
- * ¹¦ÄÜ:    °´EDPĞ­Òé, ½«remainlenĞ´ÈëBuffer(°ü)ÖĞ
- * ËµÃ÷:    remainlenÊÇEDPĞ­ÒéÖĞµÄ¸ÅÄî, ÊÇÒ»¸öEDP°üÉíµÄ³¤¶È
- * ²ÎÊı:    pkg     EDP°ü
+ * å‡½æ•°å:  WriteStr
+ * åŠŸèƒ½:    æŒ‰EDPåè®®, å°†å­—ç¬¦ä¸²å†™å…¥Buffer(åŒ…)ä¸­
+ * å‚æ•°:    pkg     EDPåŒ…
+ *          val     å­—ç¬¦ä¸²
+ * è¿”å›å€¼:  ç±»å‹ (int32)
+ *          <0      å¤±è´¥, pkgä¸­æ— æ•°æ®
+ *          =0      æˆåŠŸ
+ */
+EDPKIT_DLL
+int32 WriteStr(Buffer* buf, const char *str);
+/* 
+ * å‡½æ•°å:  WriteRemainlen 
+ * åŠŸèƒ½:    æŒ‰EDPåè®®, å°†remainlenå†™å…¥Buffer(åŒ…)ä¸­
+ * è¯´æ˜:    remainlenæ˜¯EDPåè®®ä¸­çš„æ¦‚å¿µ, æ˜¯ä¸€ä¸ªEDPåŒ…èº«çš„é•¿åº¦
+ * å‚æ•°:    pkg     EDPåŒ…
  *          len_val remainlen
- * ·µ»ØÖµ:  ÀàĞÍ (int32)
- *          <0      Ê§°Ü, pkgÖĞÎŞÊı¾İ
- *          =0      ³É¹¦
+ * è¿”å›å€¼:  ç±»å‹ (int32)
+ *          <0      å¤±è´¥, pkgä¸­æ— æ•°æ®
+ *          =0      æˆåŠŸ
  */
-EDPKIT_DLL int32 WriteRemainlen(Buffer* buf, uint32 len_val);
+EDPKIT_DLL
+int32 WriteRemainlen(Buffer* buf, uint32 len_val);
 /* 
- * º¯ÊıÃû:  IsPkgComplete 
- * ¹¦ÄÜ:    ÅĞ¶Ï½ÓÊÕµ½µÄBuffer, ÊÇ·ñÎªÒ»¸öÍêÕûµÄEDP°ü
- * ²ÎÊı:    buf     ½ÓÊÕµ½µÄBuffer(¶ş½øÖÆÁ÷)
- * ·µ»ØÖµ:  ÀàĞÍ (int32)
- *          =0      Êı¾İ»¹Î´ÊÕÍê, ĞèÒª¼ÌĞø½ÓÊÕ
- *          >0      ³É¹¦
- *          <0      Êı¾İ´íÎó, ²»·ûºÏEDPĞ­Òé
+ * å‡½æ•°å:  IsPkgComplete 
+ * åŠŸèƒ½:    åˆ¤æ–­æ¥æ”¶åˆ°çš„Buffer, æ˜¯å¦ä¸ºä¸€ä¸ªå®Œæ•´çš„EDPåŒ…
+ * å‚æ•°:    buf     æ¥æ”¶åˆ°çš„Buffer(äºŒè¿›åˆ¶æµ)
+ * è¿”å›å€¼:  ç±»å‹ (int32)
+ *          =0      æ•°æ®è¿˜æœªæ”¶å®Œ, éœ€è¦ç»§ç»­æ¥æ”¶
+ *          >0      æˆåŠŸ
+ *          <0      æ•°æ®é”™è¯¯, ä¸ç¬¦åˆEDPåè®®
  */
-EDPKIT_DLL int32 IsPkgComplete(RecvBuffer* buf);
+EDPKIT_DLL
+int32 IsPkgComplete(RecvBuffer* buf);
 
-/*-----------------------------¿Í»§¶Ë²Ù×÷µÄ½Ó¿Ú------------------------------*/
+/*-----------------------------å®¢æˆ·ç«¯æ“ä½œçš„æ¥å£------------------------------*/
 /* 
- * º¯ÊıÃû:  GetEdpPacket 
- * ¹¦ÄÜ:    ½«½ÓÊÕµ½µÄ¶ş½øÖÆÁ÷, ·Ö½â³ÉÒ»¸öÒ»¸öµÄEDP°ü
- * ËµÃ÷:    ·µ»ØµÄEDP°üÊ¹ÓÃºó, ĞèÒªÉ¾³ı
- * Ïà¹Øº¯Êı:EdpPacketType, Unpack***Ààº¯Êı
- * ²ÎÊı:    buf         ½ÓÊÕ»º´æ
- * ·µ»ØÖµ:  ÀàĞÍ (EdpPacket*) 
- *          ·Ç¿Õ        EDPĞ­Òé°ü
- *          Îª¿Õ        ÎŞÍêÕûµÄEDPĞ­Òé°ü
+ * å‡½æ•°å:  GetEdpPacket 
+ * åŠŸèƒ½:    å°†æ¥æ”¶åˆ°çš„äºŒè¿›åˆ¶æµ, åˆ†è§£æˆä¸€ä¸ªä¸€ä¸ªçš„EDPåŒ…
+ * è¯´æ˜:    è¿”å›çš„EDPåŒ…ä½¿ç”¨å, éœ€è¦åˆ é™¤
+ * ç›¸å…³å‡½æ•°:EdpPacketType, Unpack***ç±»å‡½æ•°
+ * å‚æ•°:    buf         æ¥æ”¶ç¼“å­˜
+ * è¿”å›å€¼:  ç±»å‹ (EdpPacket*) 
+ *          éç©º        EDPåè®®åŒ…
+ *          ä¸ºç©º        æ— å®Œæ•´çš„EDPåè®®åŒ…
  */
-EDPKIT_DLL EdpPacket* GetEdpPacket(RecvBuffer* buf);
+EDPKIT_DLL
+EdpPacket* GetEdpPacket(RecvBuffer* buf);
 
 /* 
- * º¯ÊıÃû:  EdpPacketType 
- * ¹¦ÄÜ:    »ñÈ¡Ò»¸öEDP°üµÄÏûÏ¢ÀàĞÍ, ¿Í»§³ÌĞò¸ù¾İÏûÏ¢ÀàĞÍ×ö²»Í¬µÄ´¦Àí
- * Ïà¹Øº¯Êı:Unpack***Ààº¯Êı
- * ²ÎÊı:    pkg         EDPĞ­Òé°ü
- * ·µ»ØÖµ:  ÀàĞÍ (uint8) 
- *          Öµ          ÏûÏ¢ÀàĞÍ(ÏêÏ¸²Î¼û±¾hµÄÏûÏ¢ÀàĞÍ¶¨Òå)
+ * å‡½æ•°å:  EdpPacketType 
+ * åŠŸèƒ½:    è·å–ä¸€ä¸ªEDPåŒ…çš„æ¶ˆæ¯ç±»å‹, å®¢æˆ·ç¨‹åºæ ¹æ®æ¶ˆæ¯ç±»å‹åšä¸åŒçš„å¤„ç†
+ * ç›¸å…³å‡½æ•°:Unpack***ç±»å‡½æ•°
+ * å‚æ•°:    pkg         EDPåè®®åŒ…
+ * è¿”å›å€¼:  ç±»å‹ (uint8) 
+ *          å€¼          æ¶ˆæ¯ç±»å‹(è¯¦ç»†å‚è§æœ¬hçš„æ¶ˆæ¯ç±»å‹å®šä¹‰)
  */
-/* Àı×Ó:
+/* ä¾‹å­:
  * ...
  * int8 mtype = EdpPacketType(pkg);
  * switch(mtype)
@@ -312,428 +405,579 @@ EDPKIT_DLL EdpPacket* GetEdpPacket(RecvBuffer* buf);
  *  ...
  * }
  */
-EDPKIT_DLL uint8 EdpPacketType(EdpPacket* pkg);
+EDPKIT_DLL
+uint8 EdpPacketType(EdpPacket* pkg);
 
 /* 
- * º¯ÊıÃû:  PacketConnect1 
- * ¹¦ÄÜ:    ´ò°ü ÓÉÉè±¸µ½Éè±¸ÔÆµÄEDPĞ­Òé°ü, Á¬½ÓÉè±¸ÔÆµÄÇëÇó(µÇÂ¼ÈÏÖ¤·½Ê½1)
- * ËµÃ÷:    ·µ»ØµÄEDP°ü·¢ËÍ¸øÉè±¸ÔÆºó, ĞèÒª¿Í»§³ÌĞòÉ¾³ı¸Ã°ü
- *          Éè±¸ÔÆ»á»Ø¸´Á¬½ÓÏìÓ¦¸øÉè±¸
- * Ïà¹Øº¯Êı:UnpackConnectResp
- * ²ÎÊı:    devid       Éè±¸ID, ÉêÇëÉè±¸Ê±Æ½Ì¨·µ»ØµÄID
- *          auth_key    ¼øÈ¨ĞÅÏ¢(api-key), ÔÚÆ½Ì¨ÉêÇëµÄ¿ÉÒÔ²Ù×÷¸ÃÉè±¸µÄapi-key×Ö·û´®
- * ·µ»ØÖµ:  ÀàĞÍ (EdpPacket*) 
- *          ·Ç¿Õ        EDPĞ­Òé°ü
- *          Îª¿Õ        EDPĞ­Òé°üÉú³ÉÊ§°Ü 
+ * å‡½æ•°å:  PacketConnect1 
+ * åŠŸèƒ½:    æ‰“åŒ… ç”±è®¾å¤‡åˆ°è®¾å¤‡äº‘çš„EDPåè®®åŒ…, è¿æ¥è®¾å¤‡äº‘çš„è¯·æ±‚(ç™»å½•è®¤è¯æ–¹å¼1)
+ * è¯´æ˜:    è¿”å›çš„EDPåŒ…å‘é€ç»™è®¾å¤‡äº‘å, éœ€è¦å®¢æˆ·ç¨‹åºåˆ é™¤è¯¥åŒ…
+ *          è®¾å¤‡äº‘ä¼šå›å¤è¿æ¥å“åº”ç»™è®¾å¤‡
+ * ç›¸å…³å‡½æ•°:UnpackConnectResp
+ * å‚æ•°:    devid       è®¾å¤‡ID, ç”³è¯·è®¾å¤‡æ—¶å¹³å°è¿”å›çš„ID
+ *          auth_key    é‰´æƒä¿¡æ¯(api-key), åœ¨å¹³å°ç”³è¯·çš„å¯ä»¥æ“ä½œè¯¥è®¾å¤‡çš„api-keyå­—ç¬¦ä¸²
+ * è¿”å›å€¼:  ç±»å‹ (EdpPacket*) 
+ *          éç©º        EDPåè®®åŒ…
+ *          ä¸ºç©º        EDPåè®®åŒ…ç”Ÿæˆå¤±è´¥ 
  */
-EDPKIT_DLL EdpPacket* PacketConnect1(const char* devid, const char* auth_key);
+EDPKIT_DLL
+EdpPacket* PacketConnect1(const char* devid, const char* auth_key);
 
 /* 
- * º¯ÊıÃû:  PacketConnect2 
- * ¹¦ÄÜ:    ´ò°ü ÓÉÉè±¸µ½Éè±¸ÔÆµÄEDPĞ­Òé°ü, Á¬½ÓÉè±¸ÔÆµÄÇëÇó(µÇÂ¼ÈÏÖ¤·½Ê½2)
- * ËµÃ÷:    ·µ»ØµÄEDP°ü·¢ËÍ¸øÉè±¸ÔÆºó, ĞèÒª¿Í»§³ÌĞòÉ¾³ı¸Ã°ü
- *          Éè±¸ÔÆ»á»Ø¸´Á¬½ÓÏìÓ¦¸øÉè±¸
- * Ïà¹Øº¯Êı:UnpackConnectResp
- * ²ÎÊı:    userid      ÓÃ»§ID, ÔÚÆ½Ì¨×¢²áÕËºÅÊ±Æ½Ì¨·µ»ØµÄÓÃ»§ID
- *          auth_info   ¼øÈ¨ĞÅÏ¢, ÔÚÆ½Ì¨ÉêÇëÉè±¸Ê±ÌîĞ´Éè±¸µÄauth_infoÊôĞÔ
- *                      (json¶ÔÏó×Ö·û´®), ¸ÃÊôĞÔĞèÒª¾ß±¸Î¨Ò»ĞÔ
- * ·µ»ØÖµ:  ÀàĞÍ (EdpPacket*) 
- *          ·Ç¿Õ        EDPĞ­Òé°ü
- *          Îª¿Õ        EDPĞ­Òé°üÉú³ÉÊ§°Ü 
+ * å‡½æ•°å:  PacketConnect2 
+ * åŠŸèƒ½:    æ‰“åŒ… ç”±è®¾å¤‡åˆ°è®¾å¤‡äº‘çš„EDPåè®®åŒ…, è¿æ¥è®¾å¤‡äº‘çš„è¯·æ±‚(ç™»å½•è®¤è¯æ–¹å¼2)
+ * è¯´æ˜:    è¿”å›çš„EDPåŒ…å‘é€ç»™è®¾å¤‡äº‘å, éœ€è¦å®¢æˆ·ç¨‹åºåˆ é™¤è¯¥åŒ…
+ *          è®¾å¤‡äº‘ä¼šå›å¤è¿æ¥å“åº”ç»™è®¾å¤‡
+ * ç›¸å…³å‡½æ•°:UnpackConnectResp
+ * å‚æ•°:    userid      ç”¨æˆ·ID, åœ¨å¹³å°æ³¨å†Œè´¦å·æ—¶å¹³å°è¿”å›çš„ç”¨æˆ·ID
+ *          auth_info   é‰´æƒä¿¡æ¯, åœ¨å¹³å°ç”³è¯·è®¾å¤‡æ—¶å¡«å†™è®¾å¤‡çš„auth_infoå±æ€§
+ *                      (jsonå¯¹è±¡å­—ç¬¦ä¸²), è¯¥å±æ€§éœ€è¦å…·å¤‡å”¯ä¸€æ€§
+ * è¿”å›å€¼:  ç±»å‹ (EdpPacket*) 
+ *          éç©º        EDPåè®®åŒ…
+ *          ä¸ºç©º        EDPåè®®åŒ…ç”Ÿæˆå¤±è´¥ 
  */
-EDPKIT_DLL EdpPacket* PacketConnect2(const char* userid, const char* auth_info);
+EDPKIT_DLL
+EdpPacket* PacketConnect2(const char* userid, const char* auth_info);
 
 /* 
- * º¯ÊıÃû:  UnpackConnectResp
- * ¹¦ÄÜ:    ½â°ü ÓÉÉè±¸ÔÆµ½Éè±¸µÄEDPĞ­Òé°ü, Á¬½ÓÏìÓ¦
- * ËµÃ÷:    ½ÓÊÕÉè±¸ÔÆ·¢À´µÄÊı¾İ, Í¨¹ıº¯ÊıGetEdpPacketºÍEdpPacketTypeÅĞ¶Ï³öÊÇÁ¬½ÓÏìÓ¦ºó, 
- *          ½«Õû¸öÏìÓ¦EDP°ü×÷Îª²ÎÊı, ÓÉ¸Ãº¯Êı½øĞĞ½âÎö
- * Ïà¹Øº¯Êı:PacketConnect1, PacketConnect2, GetEdpPacket, EdpPacketType
- * ²ÎÊı:    pkg         EDP°ü, ±ØĞëÊÇÁ¬½ÓÏìÓ¦°ü
- * ·µ»ØÖµ:  ÀàĞÍ (int32) 
- *          =0          Á¬½Ó³É¹¦
- *          >0          Á¬½ÓÊ§°Ü, ¾ßÌåÊ§°ÜÔ­Òò¼û<OneNet½ÓÈë·½°¸Óë½Ó¿Ú.docx>
- *          <0          ½âÎöÊ§°Ü, ¾ßÌåÊ§°ÜÔ­Òò¼û±¾hÎÄ¼şµÄ´íÎóÂë
+ * å‡½æ•°å:  UnpackConnectResp
+ * åŠŸèƒ½:    è§£åŒ… ç”±è®¾å¤‡äº‘åˆ°è®¾å¤‡çš„EDPåè®®åŒ…, è¿æ¥å“åº”
+ * è¯´æ˜:    æ¥æ”¶è®¾å¤‡äº‘å‘æ¥çš„æ•°æ®, é€šè¿‡å‡½æ•°GetEdpPacketå’ŒEdpPacketTypeåˆ¤æ–­å‡ºæ˜¯è¿æ¥å“åº”å, 
+ *          å°†æ•´ä¸ªå“åº”EDPåŒ…ä½œä¸ºå‚æ•°, ç”±è¯¥å‡½æ•°è¿›è¡Œè§£æ
+ * ç›¸å…³å‡½æ•°:PacketConnect1, PacketConnect2, GetEdpPacket, EdpPacketType
+ * å‚æ•°:    pkg         EDPåŒ…, å¿…é¡»æ˜¯è¿æ¥å“åº”åŒ…
+ * è¿”å›å€¼:  ç±»å‹ (int32) 
+ *          =0          è¿æ¥æˆåŠŸ
+ *          >0          è¿æ¥å¤±è´¥, å…·ä½“å¤±è´¥åŸå› è§<OneNetæ¥å…¥æ–¹æ¡ˆä¸æ¥å£.docx>
+ *          <0          è§£æå¤±è´¥, å…·ä½“å¤±è´¥åŸå› è§æœ¬hæ–‡ä»¶çš„é”™è¯¯ç 
  */
-EDPKIT_DLL int32 UnpackConnectResp(EdpPacket* pkg);
+EDPKIT_DLL
+int32 UnpackConnectResp(EdpPacket* pkg);
 
 /* 
- * º¯ÊıÃû:  PacketPushdata
- * ¹¦ÄÜ:    ´ò°ü Éè±¸µ½Éè±¸ÔÆµÄEDPĞ­Òé°ü, Éè±¸ÓëÉè±¸Ö®¼ä×ª·¢Êı¾İ
- * ËµÃ÷:    ·µ»ØµÄEDP°ü·¢ËÍ¸øÉè±¸ÔÆºó, ĞèÒªÉ¾³ıÕâ¸ö°ü
- * Ïà¹Øº¯Êı:UnpackPushdata
- * ²ÎÊı:    dst_devid   Ä¿µÄÉè±¸ID
- *          data        Êı¾İ
- *          data_len    Êı¾İ³¤¶È
- * ·µ»ØÖµ:  ÀàĞÍ (EdpPacket*) 
- *          ·Ç¿Õ        EDPĞ­Òé°ü
- *          Îª¿Õ        EDPĞ­Òé°üÉú³ÉÊ§°Ü 
+ * å‡½æ•°å:  PacketPushdata
+ * åŠŸèƒ½:    æ‰“åŒ… è®¾å¤‡åˆ°è®¾å¤‡äº‘çš„EDPåè®®åŒ…, è®¾å¤‡ä¸è®¾å¤‡ä¹‹é—´è½¬å‘æ•°æ®
+ * è¯´æ˜:    è¿”å›çš„EDPåŒ…å‘é€ç»™è®¾å¤‡äº‘å, éœ€è¦åˆ é™¤è¿™ä¸ªåŒ…
+ * ç›¸å…³å‡½æ•°:UnpackPushdata
+ * å‚æ•°:    dst_devid   ç›®çš„è®¾å¤‡ID
+ *          data        æ•°æ®
+ *          data_len    æ•°æ®é•¿åº¦
+ * è¿”å›å€¼:  ç±»å‹ (EdpPacket*) 
+ *          éç©º        EDPåè®®åŒ…
+ *          ä¸ºç©º        EDPåè®®åŒ…ç”Ÿæˆå¤±è´¥ 
  */
-EDPKIT_DLL EdpPacket* PacketPushdata(const char* dst_devid, 
-        const char* data, uint32 data_len);
+EDPKIT_DLL
+EdpPacket* PacketPushdata(const char* dst_devid,
+                          const char* data, uint32 data_len);
 
 /* 
- * º¯ÊıÃû:  UnpackPushdata
- * ¹¦ÄÜ:    ½â°ü ÓÉÉè±¸ÔÆµ½Éè±¸µÄEDPĞ­Òé°ü, Éè±¸ÓëÉè±¸Ö®¼ä×ª·¢Êı¾İ
- * ËµÃ÷:    ½ÓÊÕÉè±¸ÔÆ·¢À´µÄÊı¾İ, Í¨¹ıº¯ÊıGetEdpPacketºÍEdpPacketTypeÅĞ¶Ï³öÊÇpushdataºó, 
- *          ½«Õû¸öÏìÓ¦EDP°ü×÷Îª²ÎÊı, ÓÉ¸Ãº¯Êı½øĞĞ½âÎö 
- *          ·µ»ØµÄÔ´Éè±¸ID(src_devid)ºÍÊı¾İ(data)¶¼ĞèÒª¿Í»§¶ËÊÍ·Å
- * Ïà¹Øº¯Êı:PacketPushdata, GetEdpPacket, EdpPacketType
- * ²ÎÊı:    pkg         EDP°ü, ±ØĞëÊÇpushdata°ü
- *          src_devid   Ô´Éè±¸ID
- *          data        Êı¾İ
- *          data_len    Êı¾İ³¤¶È
- * ·µ»ØÖµ:  ÀàĞÍ (int32) 
- *          =0          ½âÎö³É¹¦
- *          <0          ½âÎöÊ§°Ü, ¾ßÌåÊ§°ÜÔ­Òò¼û±¾hÎÄ¼şµÄ´íÎóÂë
+ * å‡½æ•°å:  UnpackPushdata
+ * åŠŸèƒ½:    è§£åŒ… ç”±è®¾å¤‡äº‘åˆ°è®¾å¤‡çš„EDPåè®®åŒ…, è®¾å¤‡ä¸è®¾å¤‡ä¹‹é—´è½¬å‘æ•°æ®
+ * è¯´æ˜:    æ¥æ”¶è®¾å¤‡äº‘å‘æ¥çš„æ•°æ®, é€šè¿‡å‡½æ•°GetEdpPacketå’ŒEdpPacketTypeåˆ¤æ–­å‡ºæ˜¯pushdataå, 
+ *          å°†æ•´ä¸ªå“åº”EDPåŒ…ä½œä¸ºå‚æ•°, ç”±è¯¥å‡½æ•°è¿›è¡Œè§£æ 
+ *          è¿”å›çš„æºè®¾å¤‡ID(src_devid)å’Œæ•°æ®(data)éƒ½éœ€è¦å®¢æˆ·ç«¯é‡Šæ”¾
+ * ç›¸å…³å‡½æ•°:PacketPushdata, GetEdpPacket, EdpPacketType
+ * å‚æ•°:    pkg         EDPåŒ…, å¿…é¡»æ˜¯pushdataåŒ…
+ *          src_devid   æºè®¾å¤‡ID
+ *          data        æ•°æ®
+ *          data_len    æ•°æ®é•¿åº¦
+ * è¿”å›å€¼:  ç±»å‹ (int32) 
+ *          =0          è§£ææˆåŠŸ
+ *          <0          è§£æå¤±è´¥, å…·ä½“å¤±è´¥åŸå› è§æœ¬hæ–‡ä»¶çš„é”™è¯¯ç 
  */
-EDPKIT_DLL int32 UnpackPushdata(EdpPacket* pkg, char** src_devid, 
-        char** data, uint32* data_len);
+EDPKIT_DLL
+int32 UnpackPushdata(EdpPacket* pkg, char** src_devid,
+                     char** data, uint32* data_len);
 
 /* 
- * º¯ÊıÃû:  PacketSavedataJson
- * ¹¦ÄÜ:    ´ò°ü Éè±¸µ½Éè±¸ÔÆµÄEDPĞ­Òé°ü, ´æ´¢Êı¾İ(json¸ñÊ½Êı¾İ)
- * ËµÃ÷:    ·µ»ØµÄEDP°ü·¢ËÍ¸øÉè±¸ÔÆºó, ĞèÒªÉ¾³ıÕâ¸ö°ü
- * Ïà¹Øº¯Êı:UnpackSavedata, UnpackSavedataJson
- * ²ÎÊı:    dst_devid   Ä¿µÄÉè±¸ID
- *          json_obj    jsonÊı¾İ
- *          type        jsonµÄÀàĞÍ         
- * ·µ»ØÖµ:  ÀàĞÍ (EdpPacket*) 
- *          ·Ç¿Õ        EDPĞ­Òé°ü
- *          Îª¿Õ        EDPĞ­Òé°üÉú³ÉÊ§°Ü 
+ * å‡½æ•°å:  PacketSavedataJson
+ * åŠŸèƒ½:    æ‰“åŒ… è®¾å¤‡åˆ°è®¾å¤‡äº‘çš„EDPåè®®åŒ…, å­˜å‚¨æ•°æ®(jsonæ ¼å¼æ•°æ®)
+ * è¯´æ˜:    è¿”å›çš„EDPåŒ…å‘é€ç»™è®¾å¤‡äº‘å, éœ€è¦åˆ é™¤è¿™ä¸ªåŒ…
+ * ç›¸å…³å‡½æ•°:UnpackSavedata, UnpackSavedataJson
+ * å‚æ•°:    dst_devid   ç›®çš„è®¾å¤‡ID
+ *                      ç©ºå­—ç¬¦ä¸²"" : ç›®çš„è®¾å¤‡ä¸ºé»˜è®¤è·¯ç”±è®¾å¤‡ã€‚
+ *                      NULL       ï¼š æ— ç›®çš„è®¾å¤‡ï¼Œä¸è½¬å‘ã€‚
+ *                      å…¶å®ƒï¼š     ï¼š è½¬å‘ç»™æŒ‡å®šè®¾å¤‡ã€‚
+ *          json_obj    jsonæ•°æ®
+ *          type        jsonçš„ç±»å‹
+ *          msg_id      æ¶ˆæ¯æ ‡å¿—
+ *                      0   ï¼šæ¶ˆæ¯æ ‡å¿—ä½å°†è¢«ç½®0ï¼ŒåŒ…ä¸­ä¸æºå¸¦æ¶ˆæ¯æ ‡å¿—ã€‚
+ *                      å…¶å®ƒï¼šæ¶ˆæ¯æ ‡å¿—ä½å°†è¢«ç½®1ï¼ŒåŒ…ä¸­æºå¸¦æ¶ˆæ¯æ ‡å¿—ã€‚
+ * è¿”å›å€¼:  ç±»å‹ (EdpPacket*) 
+ *          éç©º        EDPåè®®åŒ…
+ *          ä¸ºç©º        EDPåè®®åŒ…ç”Ÿæˆå¤±è´¥ 
  */
-EdpPacket* PacketSavedataJson(const char* dst_devid, cJSON* json_obj, int type);
+EdpPacket* PacketSavedataJson(const char* dst_devid, cJSON* json_obj, int type, uint16 msg_id);
 
 /* 
- * º¯ÊıÃû:  PacketSavedataInt
- * ¹¦ÄÜ:    ´ò°ü Éè±¸µ½Éè±¸ÔÆµÄEDPĞ­Òé°ü, ´æ´¢Êı¾İ(json¸ñÊ½Êı¾İ)
- * ËµÃ÷:    ¸Ãº¯ÊıÊÊÓÃÓÚÊı¾İµãÎªintÀàĞÍµÄÊı¾İÁ÷
- *          Ëü°Ñ²ÎÊı·â×°³ÉEDPĞ­Òé¹æ¶¨µÄcJSON¶ÔÏó,
- *          typeÀàĞÍ¾ö¶¨Ê¹ÓÃÄÄÖÖJSON¸ñÊ½£¬¾ßÌå¸ñÊ½ËµÃ÷¼ûÎÄµµ¡¶Éè±¸ÖÕ¶Ë½ÓÈëĞ­Òé2-EDP.docx¡·
- * Ïà¹Øº¯Êı:UnPacketSavedataInt
- * ²ÎÊı:    type        ²ÉÓÃµÄJSONÊı¾İÀàĞÍ£¬¿ÉÑ¡ÀàĞÍÎª£ºkTypeFullJson, 
+ * å‡½æ•°å:  PacketSavedataInt
+ * åŠŸèƒ½:    æ‰“åŒ… è®¾å¤‡åˆ°è®¾å¤‡äº‘çš„EDPåè®®åŒ…, å­˜å‚¨æ•°æ®(jsonæ ¼å¼æ•°æ®)
+ * è¯´æ˜:    è¯¥å‡½æ•°é€‚ç”¨äºæ•°æ®ç‚¹ä¸ºintç±»å‹çš„æ•°æ®æµ
+ *          å®ƒæŠŠå‚æ•°å°è£…æˆEDPåè®®è§„å®šçš„cJSONå¯¹è±¡,
+ *          typeç±»å‹å†³å®šä½¿ç”¨å“ªç§JSONæ ¼å¼ï¼Œå…·ä½“æ ¼å¼è¯´æ˜è§æ–‡æ¡£ã€Šè®¾å¤‡ç»ˆç«¯æ¥å…¥åè®®2-EDP.docxã€‹
+ * ç›¸å…³å‡½æ•°:UnPacketSavedataInt
+ * å‚æ•°:    type        é‡‡ç”¨çš„JSONæ•°æ®ç±»å‹ï¼Œå¯é€‰ç±»å‹ä¸ºï¼škTypeFullJson, 
  *                      kTypeSimpleJsonWithoutTime, kTypeSimpleJsonWithTime
- *          dst_devid   Ä¿µÄÉè±¸ID
- *          ds_id       Êı¾İÁ÷ID
- *          value       intĞÍÊı¾İµã
- *          at          Èç¹ûÉèÖÃÎª0£¬Ôò²ÉÓÃÏµÍ³µ±Ç°Ê±¼ä£¬·ñÔò²ÉÓÃ¸ø¶¨Ê±¼ä¡£
- *                      Èç¹ûtypeÑ¡ÔñÎªkTypeSimpleJsonWithoutTime£¬ÓÉÓÚÕâÖÖÀàĞÍµÄJSON¸ñÊ½²»´øÊ±¼ä£¬
- *                      ·şÎñÆ÷¶ËÍ³Ò»²ÉÓÃÏµÍ³Ê±¼ä£¬´ËÖµ½«±»ºöÂÔ
- *          token       µ±typeÎªkTypeFullJsonÊ±£¬½«¸ù¾İEDPĞ­Òé·â×°token×Ö¶Î£¬
- *                      ÎªÆäËüÀàĞÍÊ±½«±»ºöÂÔ¡£
- * ·µ»ØÖµ:  ÀàĞÍ (EdpPacket*) 
- *          ·Ç¿Õ        EDPĞ­Òé°ü
- *          Îª¿Õ        EDPĞ­Òé°üÉú³ÉÊ§°Ü 
+ *          dst_devid   ç›®çš„è®¾å¤‡IDã€‚
+ *                      ç©ºå­—ç¬¦ä¸²"" : ç›®çš„è®¾å¤‡ä¸ºé»˜è®¤è·¯ç”±è®¾å¤‡ã€‚
+ *                      NULL       ï¼š æ— ç›®çš„è®¾å¤‡ï¼Œä¸è½¬å‘ã€‚
+ *                      å…¶å®ƒï¼š     ï¼š è½¬å‘ç»™æŒ‡å®šè®¾å¤‡ã€‚
+ *          ds_id       æ•°æ®æµID
+ *          value       intå‹æ•°æ®ç‚¹
+ *          at          å¦‚æœè®¾ç½®ä¸º0ï¼Œåˆ™é‡‡ç”¨ç³»ç»Ÿå½“å‰æ—¶é—´ï¼Œå¦åˆ™é‡‡ç”¨ç»™å®šæ—¶é—´ã€‚
+ *                      å¦‚æœtypeé€‰æ‹©ä¸ºkTypeSimpleJsonWithoutTimeï¼Œç”±äºè¿™ç§ç±»å‹çš„JSONæ ¼å¼ä¸å¸¦æ—¶é—´ï¼Œ
+ *                      æœåŠ¡å™¨ç«¯ç»Ÿä¸€é‡‡ç”¨ç³»ç»Ÿæ—¶é—´ï¼Œæ­¤å€¼å°†è¢«å¿½ç•¥
+ *          msg_id      æ¶ˆæ¯æ ‡å¿—
+ *                      0   ï¼šæ¶ˆæ¯æ ‡å¿—ä½å°†è¢«ç½®0ï¼ŒåŒ…ä¸­ä¸æºå¸¦æ¶ˆæ¯æ ‡å¿—ã€‚
+ *                      å…¶å®ƒï¼šæ¶ˆæ¯æ ‡å¿—ä½å°†è¢«ç½®1ï¼ŒåŒ…ä¸­æºå¸¦æ¶ˆæ¯æ ‡å¿—ã€‚
+ * è¿”å›å€¼:  ç±»å‹ (EdpPacket*) 
+ *          éç©º        EDPåè®®åŒ…
+ *          ä¸ºç©º        EDPåè®®åŒ…ç”Ÿæˆå¤±è´¥ 
  */
-EDPKIT_DLL EdpPacket* PacketSavedataInt(SaveDataType type, const char* dst_devid, 
-					const char* ds_id, int value, 
-					time_t at, const char* token);
+EDPKIT_DLL
+EdpPacket* PacketSavedataInt(SaveDataType type, const char* dst_devid,
+                             const char* ds_id, int value,
+                             time_t at, uint16 msg_id);
 
 /* 
- * º¯ÊıÃû:  PacketSavedataDouble
- * ¹¦ÄÜ:    ´ò°ü Éè±¸µ½Éè±¸ÔÆµÄEDPĞ­Òé°ü, ´æ´¢Êı¾İ(json¸ñÊ½Êı¾İ)
- * ËµÃ÷:    ¸Ãº¯ÊıÊÊÓÃÓÚÊı¾İµãÎªdoubleÀàĞÍµÄÊı¾İÁ÷
- *          Ëü°Ñ²ÎÊı·â×°³ÉEDPĞ­Òé¹æ¶¨µÄcJSON¶ÔÏó,
- *          typeÀàĞÍ¾ö¶¨Ê¹ÓÃÄÄÖÖJSON¸ñÊ½£¬¾ßÌå¸ñÊ½ËµÃ÷¼ûÎÄµµ¡¶Éè±¸ÖÕ¶Ë½ÓÈëĞ­Òé2-EDP.docx¡·
- * Ïà¹Øº¯Êı:UnPacketSavedataDouble
- * ²ÎÊı:    type        ²ÉÓÃµÄJSONÊı¾İÀàĞÍ£¬¿ÉÑ¡ÀàĞÍÎª£ºkTypeFullJson, 
+ * å‡½æ•°å:  PacketSavedataDouble
+ * åŠŸèƒ½:    æ‰“åŒ… è®¾å¤‡åˆ°è®¾å¤‡äº‘çš„EDPåè®®åŒ…, å­˜å‚¨æ•°æ®(jsonæ ¼å¼æ•°æ®)
+ * è¯´æ˜:    è¯¥å‡½æ•°é€‚ç”¨äºæ•°æ®ç‚¹ä¸ºdoubleç±»å‹çš„æ•°æ®æµ
+ *          å®ƒæŠŠå‚æ•°å°è£…æˆEDPåè®®è§„å®šçš„cJSONå¯¹è±¡,
+ *          typeç±»å‹å†³å®šä½¿ç”¨å“ªç§JSONæ ¼å¼ï¼Œå…·ä½“æ ¼å¼è¯´æ˜è§æ–‡æ¡£ã€Šè®¾å¤‡ç»ˆç«¯æ¥å…¥åè®®2-EDP.docxã€‹
+ * ç›¸å…³å‡½æ•°:UnPacketSavedataDouble
+ * å‚æ•°:    type        é‡‡ç”¨çš„JSONæ•°æ®ç±»å‹ï¼Œå¯é€‰ç±»å‹ä¸ºï¼škTypeFullJson, 
  *                      kTypeSimpleJsonWithoutTime, kTypeSimpleJsonWithTime
- *          dst_devid   Ä¿µÄÉè±¸ID
- *          ds_id       Êı¾İÁ÷ID
- *          value       doubleĞÍÊı¾İµã
- *          at          Èç¹ûÉèÖÃÎª0£¬Ôò²ÉÓÃÏµÍ³µ±Ç°Ê±¼ä£¬·ñÔò²ÉÓÃ¸ø¶¨Ê±¼ä¡£
- *                      Èç¹ûtypeÑ¡ÔñÎªkTypeSimpleJsonWithoutTime£¬ÓÉÓÚÕâÖÖÀàĞÍµÄJSON¸ñÊ½²»´øÊ±¼ä£¬
- *                      ·şÎñÆ÷¶ËÍ³Ò»²ÉÓÃÏµÍ³Ê±¼ä£¬´ËÖµ½«±»ºöÂÔ
- *          token       µ±typeÎªkTypeFullJsonÊ±£¬½«¸ù¾İEDPĞ­Òé·â×°token×Ö¶Î£¬
- *                      ÎªÆäËüÀàĞÍÊ±½«±»ºöÂÔ¡£
- * ·µ»ØÖµ:  ÀàĞÍ (EdpPacket*) 
- *          ·Ç¿Õ        EDPĞ­Òé°ü
- *          Îª¿Õ        EDPĞ­Òé°üÉú³ÉÊ§°Ü 
+ *          dst_devid   ç›®çš„è®¾å¤‡IDã€‚
+ *                      ç©ºå­—ç¬¦ä¸²"" : ç›®çš„è®¾å¤‡ä¸ºé»˜è®¤è·¯ç”±è®¾å¤‡ã€‚
+ *                      NULL       ï¼š æ— ç›®çš„è®¾å¤‡ï¼Œä¸è½¬å‘ã€‚
+ *                      å…¶å®ƒï¼š     ï¼š è½¬å‘åˆ°æŒ‡å®šè®¾å¤‡ã€‚
+ *          ds_id       æ•°æ®æµID
+ *          value       doubleå‹æ•°æ®ç‚¹
+ *          at          å¦‚æœè®¾ç½®ä¸º0ï¼Œåˆ™é‡‡ç”¨ç³»ç»Ÿå½“å‰æ—¶é—´ï¼Œå¦åˆ™é‡‡ç”¨ç»™å®šæ—¶é—´ã€‚
+ *                      å¦‚æœtypeé€‰æ‹©ä¸ºkTypeSimpleJsonWithoutTimeï¼Œç”±äºè¿™ç§ç±»å‹çš„JSONæ ¼å¼ä¸å¸¦æ—¶é—´ï¼Œ
+ *                      æœåŠ¡å™¨ç«¯ç»Ÿä¸€é‡‡ç”¨ç³»ç»Ÿæ—¶é—´ï¼Œæ­¤å€¼å°†è¢«å¿½ç•¥
+ *          msg_id      æ¶ˆæ¯æ ‡å¿—
+ *                      0   ï¼šæ¶ˆæ¯æ ‡å¿—ä½å°†è¢«ç½®0ï¼ŒåŒ…ä¸­ä¸æºå¸¦æ¶ˆæ¯æ ‡å¿—ã€‚
+ *                      å…¶å®ƒï¼šæ¶ˆæ¯æ ‡å¿—ä½å°†è¢«ç½®1ï¼ŒåŒ…ä¸­æºå¸¦æ¶ˆæ¯æ ‡å¿—ã€‚
+ * è¿”å›å€¼:  ç±»å‹ (EdpPacket*) 
+ *          éç©º        EDPåè®®åŒ…
+ *          ä¸ºç©º        EDPåè®®åŒ…ç”Ÿæˆå¤±è´¥ 
  */
-EDPKIT_DLL EdpPacket* PacketSavedataDouble(SaveDataType type, const char* dst_devid, 
-				const char* ds_id, double value, 
-				time_t at, const char* token);
+EDPKIT_DLL
+EdpPacket* PacketSavedataDouble(SaveDataType type, const char* dst_devid,
+                                const char* ds_id, double value,
+                                time_t at, uint16 msg_id);
 
 /* 
- * º¯ÊıÃû:  PacketSavedataString
- * ¹¦ÄÜ:    ´ò°ü Éè±¸µ½Éè±¸ÔÆµÄEDPĞ­Òé°ü, ´æ´¢Êı¾İ(json¸ñÊ½Êı¾İ)
- * ËµÃ÷:    ¸Ãº¯ÊıÊÊÓÃÓÚÊı¾İµãÎªchar*ÀàĞÍµÄÊı¾İÁ÷
- *          Ëü°Ñ²ÎÊı·â×°³ÉEDPĞ­Òé¹æ¶¨µÄcJSON¶ÔÏó,
- *          typeÀàĞÍ¾ö¶¨Ê¹ÓÃÄÄÖÖJSON¸ñÊ½£¬¾ßÌå¸ñÊ½ËµÃ÷¼ûÎÄµµ¡¶Éè±¸ÖÕ¶Ë½ÓÈëĞ­Òé2-EDP.docx¡·
- * Ïà¹Øº¯Êı:UnPacketSavedataString
- * ²ÎÊı:    type        ²ÉÓÃµÄJSONÊı¾İÀàĞÍ£¬¿ÉÑ¡ÀàĞÍÎª£ºkTypeFullJson, 
+ * å‡½æ•°å:  PacketSavedataString
+ * åŠŸèƒ½:    æ‰“åŒ… è®¾å¤‡åˆ°è®¾å¤‡äº‘çš„EDPåè®®åŒ…, å­˜å‚¨æ•°æ®(jsonæ ¼å¼æ•°æ®)
+ * è¯´æ˜:    è¯¥å‡½æ•°é€‚ç”¨äºæ•°æ®ç‚¹ä¸ºchar*ç±»å‹çš„æ•°æ®æµ
+ *          å®ƒæŠŠå‚æ•°å°è£…æˆEDPåè®®è§„å®šçš„cJSONå¯¹è±¡,
+ *          typeç±»å‹å†³å®šä½¿ç”¨å“ªç§JSONæ ¼å¼ï¼Œå…·ä½“æ ¼å¼è¯´æ˜è§æ–‡æ¡£ã€Šè®¾å¤‡ç»ˆç«¯æ¥å…¥åè®®2-EDP.docxã€‹
+ * ç›¸å…³å‡½æ•°:UnPacketSavedataString
+ * å‚æ•°:    type        é‡‡ç”¨çš„JSONæ•°æ®ç±»å‹ï¼Œå¯é€‰ç±»å‹ä¸ºï¼škTypeFullJson, 
  *                      kTypeSimpleJsonWithoutTime, kTypeSimpleJsonWithTime
- *          dst_devid   Ä¿µÄÉè±¸ID
- *          ds_id       Êı¾İÁ÷ID
- *          value       char*ĞÍÊı¾İµã
- *          at          Èç¹ûÉèÖÃÎª0£¬Ôò²ÉÓÃÏµÍ³µ±Ç°Ê±¼ä£¬·ñÔò²ÉÓÃ¸ø¶¨Ê±¼ä¡£
- *                      Èç¹ûtypeÑ¡ÔñÎªkTypeSimpleJsonWithoutTime£¬ÓÉÓÚÕâÖÖÀàĞÍµÄJSON¸ñÊ½²»´øÊ±¼ä£¬
- *                      ·şÎñÆ÷¶ËÍ³Ò»²ÉÓÃÏµÍ³Ê±¼ä£¬´ËÖµ½«±»ºöÂÔ
- *          token       µ±typeÎªkTypeFullJsonÊ±£¬½«¸ù¾İEDPĞ­Òé·â×°token×Ö¶Î£¬
- *                      ÎªÆäËüÀàĞÍÊ±½«±»ºöÂÔ¡£
- * ·µ»ØÖµ:  ÀàĞÍ (EdpPacket*) 
- *          ·Ç¿Õ        EDPĞ­Òé°ü
- *          Îª¿Õ        EDPĞ­Òé°üÉú³ÉÊ§°Ü 
+ *          dst_devid   ç›®çš„è®¾å¤‡IDã€‚
+ *                      ç©ºå­—ç¬¦ä¸²"" : ç›®çš„è®¾å¤‡ä¸ºé»˜è®¤è·¯ç”±è®¾å¤‡ã€‚
+ *                      NULL       ï¼š æ— ç›®çš„è®¾å¤‡ï¼Œä¸è½¬å‘ã€‚
+ *                      å…¶å®ƒï¼š     ï¼š è½¬å‘åˆ°æŒ‡å®šè®¾å¤‡ã€‚
+ *          ds_id       æ•°æ®æµID
+ *          value       char*å‹æ•°æ®ç‚¹
+ *          at          å¦‚æœè®¾ç½®ä¸º0ï¼Œåˆ™é‡‡ç”¨ç³»ç»Ÿå½“å‰æ—¶é—´ï¼Œå¦åˆ™é‡‡ç”¨ç»™å®šæ—¶é—´ã€‚
+ *                      å¦‚æœtypeé€‰æ‹©ä¸ºkTypeSimpleJsonWithoutTimeï¼Œç”±äºè¿™ç§ç±»å‹çš„JSONæ ¼å¼ä¸å¸¦æ—¶é—´ï¼Œ
+ *                      æœåŠ¡å™¨ç«¯ç»Ÿä¸€é‡‡ç”¨ç³»ç»Ÿæ—¶é—´ï¼Œæ­¤å€¼å°†è¢«å¿½ç•¥
+ *          msg_id      æ¶ˆæ¯æ ‡å¿—
+ *                      0   ï¼šæ¶ˆæ¯æ ‡å¿—ä½å°†è¢«ç½®0ï¼ŒåŒ…ä¸­ä¸æºå¸¦æ¶ˆæ¯æ ‡å¿—ã€‚
+ *                      å…¶å®ƒï¼šæ¶ˆæ¯æ ‡å¿—ä½å°†è¢«ç½®1ï¼ŒåŒ…ä¸­æºå¸¦æ¶ˆæ¯æ ‡å¿—ã€‚
+ * è¿”å›å€¼:  ç±»å‹ (EdpPacket*)
+ *          éç©º        EDPåè®®åŒ…
+ *          ä¸ºç©º        EDPåè®®åŒ…ç”Ÿæˆå¤±è´¥ 
  */
-EDPKIT_DLL EdpPacket* PacketSavedataString(SaveDataType type, const char* dst_devid, 
-				const char* ds_id, const char* value, 
-				time_t at, const char* token);
+EDPKIT_DLL
+EdpPacket* PacketSavedataString(SaveDataType type, const char* dst_devid,
+                                const char* ds_id, const char* value,
+                                time_t at, uint16 msg_id);
 
 /* 
- * º¯ÊıÃû:  UnpackSavedataInt
- * ¹¦ÄÜ:    ½â°ü ÓÉÉè±¸ÔÆµ½Éè±¸µÄEDPĞ­Òé°ü, ´æ´¢Êı¾İ
- * ËµÃ÷:    ½ÓÊÕÉè±¸ÔÆ·¢À´µÄÊı¾İ,½«ÆäÖĞµÄÊı¾İÁ÷ID¼°Öµ½âÎö³öÀ´¡£
+ * å‡½æ•°å:  UnpackSavedataInt
+ * åŠŸèƒ½:    è§£åŒ… ç”±è®¾å¤‡äº‘åˆ°è®¾å¤‡çš„EDPåè®®åŒ…, å­˜å‚¨æ•°æ®
+ * è¯´æ˜:    æ¥æ”¶è®¾å¤‡äº‘å‘æ¥çš„æ•°æ®,å°†å…¶ä¸­çš„æ•°æ®æµIDåŠå€¼è§£æå‡ºæ¥ã€‚
  *
- * Ïà¹Øº¯Êı:PacketSavedataInt
+ * ç›¸å…³å‡½æ•°:PacketSavedataInt
  *          
- * ²ÎÊı:    type        ²ÉÓÃµÄJSONÊı¾İÀàĞÍ£¬¿ÉÑ¡ÀàĞÍÎª£ºkTypeFullJson, 
+ * å‚æ•°:    type        é‡‡ç”¨çš„JSONæ•°æ®ç±»å‹ï¼Œå¯é€‰ç±»å‹ä¸ºï¼škTypeFullJson, 
  *                      kTypeSimpleJsonWithoutTime, kTypeSimpleJsonWithTime
- *          pkg         EDP°ü, ±ØĞëÊÇsavedata°ü
- *          ds_id       »ñÈ¡Êı¾İÁ÷ID£¬Ê¹ÓÃÍêºó±ØĞëÊÍ·Å
- *          value       Êı¾İÁ÷¶ÔÓ¦µÄÖµ
- * ·µ»ØÖµ:  ÀàĞÍ (int32) 
- *          =0          ½âÎö³É¹¦
- *          <0          ½âÎöÊ§°Ü, -1 typeÀàĞÍ²»ºÏ·¨£¬ÆäËüÖµ¼û±¾hÎÄ¼şµÄ´íÎóÂë
+ *          pkg         EDPåŒ…, å¿…é¡»æ˜¯savedataåŒ…
+ *          ds_id       è·å–æ•°æ®æµIDï¼Œä½¿ç”¨å®Œåå¿…é¡»é‡Šæ”¾
+ *          value       æ•°æ®æµå¯¹åº”çš„å€¼
+ * è¿”å›å€¼:  ç±»å‹ (int32) 
+ *          =0          è§£ææˆåŠŸ
+ *          <0          è§£æå¤±è´¥, -1 typeç±»å‹ä¸åˆæ³•ï¼Œå…¶å®ƒå€¼è§æœ¬hæ–‡ä»¶çš„é”™è¯¯ç 
  */
-EDPKIT_DLL int32 UnpackSavedataInt(SaveDataType type, EdpPacket* pkg,
-				     char** ds_id, int* value);
+EDPKIT_DLL
+int32 UnpackSavedataInt(SaveDataType type, EdpPacket* pkg,
+                        char** ds_id, int* value);
 
 /* 
- * º¯ÊıÃû:  UnpackSavedataDouble
- * ¹¦ÄÜ:    ½â°ü ÓÉÉè±¸ÔÆµ½Éè±¸µÄEDPĞ­Òé°ü, ´æ´¢Êı¾İ
- * ËµÃ÷:    ½ÓÊÕÉè±¸ÔÆ·¢À´µÄÊı¾İ,½«ÆäÖĞµÄÊı¾İÁ÷ID¼°Öµ½âÎö³öÀ´¡£
+ * å‡½æ•°å:  UnpackSavedataDouble
+ * åŠŸèƒ½:    è§£åŒ… ç”±è®¾å¤‡äº‘åˆ°è®¾å¤‡çš„EDPåè®®åŒ…, å­˜å‚¨æ•°æ®
+ * è¯´æ˜:    æ¥æ”¶è®¾å¤‡äº‘å‘æ¥çš„æ•°æ®,å°†å…¶ä¸­çš„æ•°æ®æµIDåŠå€¼è§£æå‡ºæ¥ã€‚
  *
- * Ïà¹Øº¯Êı:PacketSavedataDouble
+ * ç›¸å…³å‡½æ•°:PacketSavedataDouble
  *          
- * ²ÎÊı:    type        ²ÉÓÃµÄJSONÊı¾İÀàĞÍ£¬¿ÉÑ¡ÀàĞÍÎª£ºkTypeFullJson, 
+ * å‚æ•°:    type        é‡‡ç”¨çš„JSONæ•°æ®ç±»å‹ï¼Œå¯é€‰ç±»å‹ä¸ºï¼škTypeFullJson, 
  *                      kTypeSimpleJsonWithoutTime, kTypeSimpleJsonWithTime
- *          pkg         EDP°ü, ±ØĞëÊÇsavedata°ü
- *          ds_id       »ñÈ¡Êı¾İÁ÷ID£¬Ê¹ÓÃÍêºó±ØĞëÊÍ·Å
- *          value       Êı¾İÁ÷¶ÔÓ¦µÄÖµ
- * ·µ»ØÖµ:  ÀàĞÍ (int32) 
- *          =0          ½âÎö³É¹¦
- *          <0          ½âÎöÊ§°Ü, -1 typeÀàĞÍ²»ºÏ·¨£¬ÆäËüÖµ¼û±¾hÎÄ¼şµÄ´íÎóÂë
+ *          pkg         EDPåŒ…, å¿…é¡»æ˜¯savedataåŒ…
+ *          ds_id       è·å–æ•°æ®æµIDï¼Œä½¿ç”¨å®Œåå¿…é¡»é‡Šæ”¾
+ *          value       æ•°æ®æµå¯¹åº”çš„å€¼
+ * è¿”å›å€¼:  ç±»å‹ (int32) 
+ *          =0          è§£ææˆåŠŸ
+ *          <0          è§£æå¤±è´¥, -1 typeç±»å‹ä¸åˆæ³•ï¼Œå…¶å®ƒå€¼è§æœ¬hæ–‡ä»¶çš„é”™è¯¯ç 
  */
-EDPKIT_DLL int32 UnpackSavedataDouble(SaveDataType type, EdpPacket* pkg,
-					char** ds_id, double* value);
+EDPKIT_DLL
+int32 UnpackSavedataDouble(SaveDataType type, EdpPacket* pkg,
+                           char** ds_id, double* value);
 
 /* 
- * º¯ÊıÃû:  UnpackSavedataString
- * ¹¦ÄÜ:    ½â°ü ÓÉÉè±¸ÔÆµ½Éè±¸µÄEDPĞ­Òé°ü, ´æ´¢Êı¾İ
- * ËµÃ÷:    ½ÓÊÕÉè±¸ÔÆ·¢À´µÄÊı¾İ,½«ÆäÖĞµÄÊı¾İÁ÷ID¼°Öµ½âÎö³öÀ´¡£
+ * å‡½æ•°å:  UnpackSavedataString
+ * åŠŸèƒ½:    è§£åŒ… ç”±è®¾å¤‡äº‘åˆ°è®¾å¤‡çš„EDPåè®®åŒ…, å­˜å‚¨æ•°æ®
+ * è¯´æ˜:    æ¥æ”¶è®¾å¤‡äº‘å‘æ¥çš„æ•°æ®,å°†å…¶ä¸­çš„æ•°æ®æµIDåŠå€¼è§£æå‡ºæ¥ã€‚
  *
- * Ïà¹Øº¯Êı:PacketSavedataString
+ * ç›¸å…³å‡½æ•°:PacketSavedataString
  *          
- * ²ÎÊı:    type        ²ÉÓÃµÄJSONÊı¾İÀàĞÍ£¬¿ÉÑ¡ÀàĞÍÎª£ºkTypeFullJson, 
+ * å‚æ•°:    type        é‡‡ç”¨çš„JSONæ•°æ®ç±»å‹ï¼Œå¯é€‰ç±»å‹ä¸ºï¼škTypeFullJson, 
  *                      kTypeSimpleJsonWithoutTime, kTypeSimpleJsonWithTime
- *          pkg         EDP°ü, ±ØĞëÊÇsavedata°ü
- *          ds_id       »ñÈ¡Êı¾İÁ÷ID£¬Ê¹ÓÃÍêºóĞèÒªÊÍ·Å
- *          value       Êı¾İÁ÷¶ÔÓ¦µÄÖµ£¬Ê¹ÓÃÍêºóĞèÒªÊÍ·Å
- * ·µ»ØÖµ:  ÀàĞÍ (int32) 
- *          =0          ½âÎö³É¹¦
- *          <0          ½âÎöÊ§°Ü, -1 typeÀàĞÍ²»ºÏ·¨£¬ÆäËüÖµ¼û±¾hÎÄ¼şµÄ´íÎóÂë
+ *          pkg         EDPåŒ…, å¿…é¡»æ˜¯savedataåŒ…
+ *          ds_id       è·å–æ•°æ®æµIDï¼Œä½¿ç”¨å®Œåéœ€è¦é‡Šæ”¾
+ *          value       æ•°æ®æµå¯¹åº”çš„å€¼ï¼Œä½¿ç”¨å®Œåéœ€è¦é‡Šæ”¾
+ * è¿”å›å€¼:  ç±»å‹ (int32) 
+ *          =0          è§£ææˆåŠŸ
+ *          <0          è§£æå¤±è´¥, -1 typeç±»å‹ä¸åˆæ³•ï¼Œå…¶å®ƒå€¼è§æœ¬hæ–‡ä»¶çš„é”™è¯¯ç 
  */
-EDPKIT_DLL int32 UnpackSavedataString(SaveDataType type, EdpPacket* pkg,
-					char** ds_id, char** value);
+EDPKIT_DLL
+int32 UnpackSavedataString(SaveDataType type, EdpPacket* pkg,
+                           char** ds_id, char** value);
 
 
 /* 
- * º¯ÊıÃû:  UnpackSavedataAck
- * ¹¦ÄÜ:    ½â°ü ÓÉÉè±¸ÔÆµ½Éè±¸µÄEDPĞ­Òé°ü, ´æÖü£¨×ª·¢£©ÏûÏ¢µÄÏìÓ¦
- * ËµÃ÷:    µ±´æÖü£¨×ª·¢£©ÏûÏ¢´øtokenÊ±£¬Æ½Ì¨»áÏìÓ¦Ò»¸öSAVE_ACKÏûÏ¢£¬
- *          ÓÃ×÷´æ´¢ÏûÏ¢µÄÈ·ÈÏ¡£
- * Ïà¹Øº¯Êı: PacketSavedataDoubleWithToken PacketSavedataStringWithToken
- * ²ÎÊı:    pkg         EDP°ü, ±ØĞëÊÇÁ¬½ÓÏìÓ¦°ü
- *          json_ack    »ñÈ¡ÏìÓ¦µÄjson×Ö·û´®£¬Ê¹ÓÃÍêºóĞèÒªÊÍ·Å
- * ·µ»ØÖµ:  ÀàĞÍ (int32) 
- *          =0          ĞÄÌø³É¹¦
- *          <0          ½âÎöÊ§°Ü, ¾ßÌåÊ§°ÜÔ­Òò¼û±¾hÎÄ¼şµÄ´íÎóÂë
+ * å‡½æ•°å:  UnpackSavedataAck
+ * åŠŸèƒ½:    è§£åŒ…ç”±è®¾å¤‡äº‘åˆ°è®¾å¤‡çš„EDPåè®®åŒ…, å­˜è´®ï¼ˆè½¬å‘ï¼‰æ¶ˆæ¯çš„å“åº”
+ * è¯´æ˜:    å½“å­˜è´®ï¼ˆè½¬å‘ï¼‰æ¶ˆæ¯å¸¦æœ‰æ¶ˆæ¯ç¡®è®¤æ ‡å¿—æ—¶ï¼Œå¹³å°ä¼šå“åº”æ­¤åŒ…ï¼Œ
+ *          ç”¨ä½œå­˜å‚¨æ¶ˆæ¯çš„ç¡®è®¤ã€‚
+ * ç›¸å…³å‡½æ•°:
+ * å‚æ•°:    pkg         EDPåŒ…, å¿…é¡»æ˜¯è¿æ¥å“åº”åŒ…
+ *          msg_id      å“åº”çš„æ¶ˆæ¯æ ‡å¿—
+ *          result      å­˜å‚¨å‘½ä»¤æ‰§è¡Œç»“æœ
+ * è¿”å›å€¼:  ç±»å‹ (int32) 
+ *          =0          è§£ææˆåŠŸ
+ *          <0          è§£æå¤±è´¥, å…·ä½“å¤±è´¥åŸå› è§æœ¬hæ–‡ä»¶çš„é”™è¯¯ç 
  */
-EDPKIT_DLL int32 UnpackSavedataAck(EdpPacket* pkg, char** json_ack);
+EDPKIT_DLL
+int32 UnpackSavedataAck(EdpPacket* pkg, uint16* msg_id, unsigned char* result);
 
 /* 
- * º¯ÊıÃû:  PacketSavedataSimpleString
- * ¹¦ÄÜ:    ´ò°ü Éè±¸µ½Éè±¸ÔÆµÄEDPĞ­Òé°ü, ´æ´¢Êı¾İ(ÒÔ·ÖºÅ·Ö¸ôµÄ¼òµ¥×Ö·û´®ĞÎÊ½)
- * ËµÃ÷:    ·µ»ØµÄEDP°ü·¢ËÍ¸øÉè±¸ÔÆºó, ĞèÒªÉ¾³ıÕâ¸ö°ü
- * Ïà¹Øº¯Êı:UnpackSavedataSimpleString
- * ²ÎÊı:    dst_devid   Ä¿µÄÉè±¸ID
- *          input       ÒÔ·ÖºÅ·Ö¸ôµÄ¼òµ¥×Ö·û´®ĞÎÊ½£¬
- *                      Ïê¼û¡¶Éè±¸ÖÕ¶Ë½ÓÈëĞ­Òé2-EDP.docx¡·
- * ·µ»ØÖµ:  ÀàĞÍ (EdpPacket*) 
- *          ·Ç¿Õ        EDPĞ­Òé°ü
- *          Îª¿Õ        EDPĞ­Òé°üÉú³ÉÊ§°Ü 
+ * å‡½æ•°å:  PacketSavedataSimpleString
+ * åŠŸèƒ½:    æ‰“åŒ… è®¾å¤‡åˆ°è®¾å¤‡äº‘çš„EDPåè®®åŒ…, å­˜å‚¨æ•°æ®(ä»¥åˆ†å·åˆ†éš”çš„ç®€å•å­—ç¬¦ä¸²å½¢å¼)
+ * è¯´æ˜:    è¿”å›çš„EDPåŒ…å‘é€ç»™è®¾å¤‡äº‘å, éœ€è¦åˆ é™¤è¿™ä¸ªåŒ…
+ * ç›¸å…³å‡½æ•°:UnpackSavedataSimpleString
+ * å‚æ•°:    dst_devid   ç›®çš„è®¾å¤‡IDã€‚
+ *                      ç©ºå­—ç¬¦ä¸²"" : ç›®çš„è®¾å¤‡ä¸ºé»˜è®¤è·¯ç”±è®¾å¤‡ã€‚
+ *                      NULL       ï¼š æ— ç›®çš„è®¾å¤‡ï¼Œä¸è½¬å‘ã€‚
+ *                      å…¶å®ƒï¼š     ï¼š è½¬å‘åˆ°æŒ‡å®šè®¾å¤‡ã€‚
+ *          input       ä»¥åˆ†å·åˆ†éš”çš„ç®€å•å­—ç¬¦ä¸²å½¢å¼ï¼Œ
+ *                      è¯¦è§ã€Šè®¾å¤‡ç»ˆç«¯æ¥å…¥åè®®2-EDP.docxã€‹
+ *          msg_id      æ¶ˆæ¯æ ‡å¿—
+ *                      0   ï¼šæ¶ˆæ¯æ ‡å¿—ä½å°†è¢«ç½®0ï¼ŒåŒ…ä¸­ä¸æºå¸¦æ¶ˆæ¯æ ‡å¿—ã€‚
+ *                      å…¶å®ƒï¼šæ¶ˆæ¯æ ‡å¿—ä½å°†è¢«ç½®1ï¼ŒåŒ…ä¸­æºå¸¦æ¶ˆæ¯æ ‡å¿—ã€‚
+ * è¿”å›å€¼:  ç±»å‹ (EdpPacket*) 
+ *          éç©º        EDPåè®®åŒ…
+ *          ä¸ºç©º        EDPåè®®åŒ…ç”Ÿæˆå¤±è´¥ 
  */
-EDPKIT_DLL EdpPacket* PacketSavedataSimpleString(const char* dst_devid, const char* input);
+EDPKIT_DLL
+EdpPacket* PacketSavedataSimpleString(const char* dst_devid, const char* input, uint16 msg_id);
 
 /* 
- * º¯ÊıÃû:  UnpackSavedataSimpleString
- * ¹¦ÄÜ:    ½â°ü ÓÉÉè±¸ÔÆµ½Éè±¸µÄEDPĞ­Òé°ü, ´æ´¢Êı¾İ
- * ËµÃ÷:    ½ÓÊÕÉè±¸ÔÆ·¢À´µÄÊı¾İ, Í¨¹ıº¯ÊıGetEdpPacketºÍEdpPacketTypeÅĞ¶Ï³öÊÇsavedataºó,
- *          ½«Õû¸öÏìÓ¦EDP°ü×÷Îª²ÎÊı, ÓÉ¸Ãº¯Êı½øĞĞ½âÎö,
- *          »ñÈ¡Ô´¶Ë·¢ËÍÀ´µÄÒÔ·ÖºÅ×÷Îª·Ö¸ô·ûµÄ×Ö·û´®¡£
- * Ïà¹Øº¯Êı: PacketSavedataSimpleString
+ * å‡½æ•°å:  UnpackSavedataSimpleString
+ * åŠŸèƒ½:    è§£åŒ… ç”±è®¾å¤‡äº‘åˆ°è®¾å¤‡çš„EDPåè®®åŒ…, å­˜å‚¨æ•°æ®
+ * è¯´æ˜:    æ¥æ”¶è®¾å¤‡äº‘å‘æ¥çš„æ•°æ®, é€šè¿‡å‡½æ•°GetEdpPacketå’ŒEdpPacketTypeåˆ¤æ–­å‡ºæ˜¯savedataå,
+ *          å°†æ•´ä¸ªå“åº”EDPåŒ…ä½œä¸ºå‚æ•°, ç”±è¯¥å‡½æ•°è¿›è¡Œè§£æ,
+ *          è·å–æºç«¯å‘é€æ¥çš„ä»¥åˆ†å·ä½œä¸ºåˆ†éš”ç¬¦çš„å­—ç¬¦ä¸²ã€‚
+ * ç›¸å…³å‡½æ•°: PacketSavedataSimpleString
  *          
- * ²ÎÊı:    pkg         EDP°ü, ±ØĞëÊÇsavedata°ü
- *          output      ´æ´¢·¢ËÍÀ´µÄ×Ö·û´®
- * ·µ»ØÖµ:  ÀàĞÍ (int32) 
- *          =0          ½âÎö³É¹¦
- *          <0          ½âÎöÊ§°Ü, ¾ßÌåÊ§°ÜÔ­Òò¼û±¾hÎÄ¼şµÄ´íÎóÂë
+ * å‚æ•°:    pkg         EDPåŒ…, å¿…é¡»æ˜¯savedataåŒ…
+ *          output      å­˜å‚¨å‘é€æ¥çš„å­—ç¬¦ä¸²
+ * è¿”å›å€¼:  ç±»å‹ (int32) 
+ *          =0          è§£ææˆåŠŸ
+ *          <0          è§£æå¤±è´¥, å…·ä½“å¤±è´¥åŸå› è§æœ¬hæ–‡ä»¶çš„é”™è¯¯ç 
  */
-EDPKIT_DLL int32 UnpackSavedataSimpleString(EdpPacket* pkg, char** output);
+EDPKIT_DLL
+int32 UnpackSavedataSimpleString(EdpPacket* pkg, char** output);
+
 
 /* 
- * º¯ÊıÃû:  PacketSavedataBin
- * ¹¦ÄÜ:    ´ò°ü Éè±¸µ½Éè±¸ÔÆµÄEDPĞ­Òé°ü, ´æ´¢Êı¾İ(bin¸ñÊ½Êı¾İ)
- * ËµÃ÷:    ·µ»ØµÄEDP°ü·¢ËÍ¸øÉè±¸ÔÆºó, ĞèÒªÉ¾³ıÕâ¸ö°ü
- * Ïà¹Øº¯Êı:UnpackSavedata, UnpackSavedataBin
- * ²ÎÊı:    dst_devid   Ä¿µÄÉè±¸ID
- *          desc_obj    Êı¾İÃèÊö json¸ñÊ½
- *          bin_data    ¶ş½øÖÆÊı¾İ
- *          bin_len     ¶ş½øÖÆÊı¾İ³¤¶È
- * ·µ»ØÖµ:  ÀàĞÍ (EdpPacket*) 
- *          ·Ç¿Õ        EDPĞ­Òé°ü
- *          Îª¿Õ        EDPĞ­Òé°üÉú³ÉÊ§°Ü 
+ * å‡½æ•°å:  PacketSavedataSimpleStringWithTime
+ * åŠŸèƒ½:    æ‰“åŒ… è®¾å¤‡åˆ°è®¾å¤‡äº‘çš„EDPåè®®åŒ…, å­˜å‚¨æ•°æ®(å¸¦é»˜è®¤æ—¶é—´çš„ä»¥åˆ†å·åˆ†éš”çš„ç®€å•å­—ç¬¦ä¸²å½¢å¼)
+ * è¯´æ˜:    è¿”å›çš„EDPåŒ…å‘é€ç»™è®¾å¤‡äº‘å, éœ€è¦åˆ é™¤è¿™ä¸ªåŒ…
+ * ç›¸å…³å‡½æ•°:UnpackSavedataSimpleStringWithTime
+ * å‚æ•°:    
+ *          dst_devid   ç›®çš„è®¾å¤‡IDã€‚
+ *                          ç©ºå­—ç¬¦ä¸²"" : ç›®çš„è®¾å¤‡ä¸ºé»˜è®¤è·¯ç”±è®¾å¤‡ã€‚
+ *                          NULL       ï¼š æ— ç›®çš„è®¾å¤‡ï¼Œä¸è½¬å‘ã€‚
+ *                          å…¶å®ƒï¼š     ï¼š è½¬å‘åˆ°æŒ‡å®šè®¾å¤‡ã€‚
+ *          input         ä»¥åˆ†å·åˆ†éš”çš„ç®€å•å­—ç¬¦ä¸²å½¢å¼ï¼Œ( è¯¦è§ã€Šè®¾å¤‡ç»ˆç«¯æ¥å…¥åè®®2-EDP.docxã€‹)
+ *		at		  åŒ…å«å¹´æœˆæ—¥æ—¶åˆ†ç§’çš„æ—¶é—´ç»“æ„ä½“ï¼›NULL åˆ™ä½¿ç”¨å½“å‰æ—¶é—´
+ *          msg_id      æ¶ˆæ¯æ ‡å¿—
+ *                          0   ï¼šæ¶ˆæ¯æ ‡å¿—ä½å°†è¢«ç½®0ï¼ŒåŒ…ä¸­ä¸æºå¸¦æ¶ˆæ¯æ ‡å¿—ã€‚
+ *                          å…¶å®ƒï¼šæ¶ˆæ¯æ ‡å¿—ä½å°†è¢«ç½®1ï¼ŒåŒ…ä¸­æºå¸¦æ¶ˆæ¯æ ‡å¿—ã€‚
+ * è¿”å›å€¼:  ç±»å‹ (EdpPacket*) 
+ *          éç©º        EDPåè®®åŒ…
+ *          ä¸ºç©º        EDPåè®®åŒ…ç”Ÿæˆå¤±è´¥ 
  */
-EdpPacket* PacketSavedataBin(const char* dst_devid, 
-        cJSON* desc_obj, const uint8* bin_data, uint32 bin_len);
-/* 
- * º¯ÊıÃû:  PacketSavedataBinStr
- * ¹¦ÄÜ:    ´ò°ü Éè±¸µ½Éè±¸ÔÆµÄEDPĞ­Òé°ü, ´æ´¢Êı¾İ(bin¸ñÊ½Êı¾İ)
- * ËµÃ÷:    ·µ»ØµÄEDP°ü·¢ËÍ¸øÉè±¸ÔÆºó, ĞèÒªÉ¾³ıÕâ¸ö°ü
- * Ïà¹Øº¯Êı:UnpackSavedata, UnpackSavedataBin
- * ²ÎÊı:    dst_devid   Ä¿µÄÉè±¸ID
- *          desc_obj    Êı¾İÃèÊö ×Ö·û´®¸ñÊ½
- *          bin_data    ¶ş½øÖÆÊı¾İ
- *          bin_len     ¶ş½øÖÆÊı¾İ³¤¶È
- * ·µ»ØÖµ:  ÀàĞÍ (EdpPacket*) 
- *          ·Ç¿Õ        EDPĞ­Òé°ü
- *          Îª¿Õ        EDPĞ­Òé°üÉú³ÉÊ§°Ü 
- */
-EDPKIT_DLL EdpPacket* PacketSavedataBinStr(const char* dst_devid, 
-        const char* desc_str, const uint8* bin_data, uint32 bin_len);
+EDPKIT_DLL
+EdpPacket* PacketSavedataSimpleStringWithTime(const char* dst_devid, const char* input,const LPDataTime at, uint16 msg_id);
+
 
 /* 
- * º¯ÊıÃû:  UnpackSavedata
- * ¹¦ÄÜ:    ½â°ü ÓÉÉè±¸ÔÆµ½Éè±¸µÄEDPĞ­Òé°ü, ´æ´¢Êı¾İ
- * ËµÃ÷:    ½ÓÊÕÉè±¸ÔÆ·¢À´µÄÊı¾İ, Í¨¹ıº¯ÊıGetEdpPacketºÍEdpPacketTypeÅĞ¶Ï³öÊÇsavedataºó,
- *          ½«Õû¸öÏìÓ¦EDP°ü×÷Îª²ÎÊı, ÓÉ¸Ãº¯Êı½øĞĞ½âÎö 
- *          È»ºóÔÙ¸ù¾İjsonºÍbinµÄ±êÊ¶(jb_flag), µ÷ÓÃÏàÓ¦µÄ½âÎöº¯Êı
- *          ·µ»ØµÄÔ´Éè±¸ID(src_devid)ĞèÒª¿Í»§¶ËÊÍ·Å
- * Ïà¹Øº¯Êı:PacketSavedataJson, PacketSavedataBin, GetEdpPacket, 
+ * å‡½æ•°å:  UnpackSavedataSimpleStringWithTime
+ * åŠŸèƒ½:    è§£åŒ… ç”±è®¾å¤‡äº‘åˆ°è®¾å¤‡çš„EDPåè®®åŒ…, å­˜å‚¨æ•°æ®
+ * è¯´æ˜:    æ¥æ”¶è®¾å¤‡äº‘å‘æ¥çš„æ•°æ®, é€šè¿‡å‡½æ•°GetEdpPacketå’ŒEdpPacketTypeåˆ¤æ–­å‡ºæ˜¯savedataå,
+ *          å°†æ•´ä¸ªå“åº”EDPåŒ…ä½œä¸ºå‚æ•°, ç”±è¯¥å‡½æ•°è¿›è¡Œè§£æ,
+ *          è·å–é»˜è®¤æ—¶é—´åï¼Œè·å–æºç«¯å‘é€æ¥çš„ä»¥åˆ†å·ä½œä¸ºåˆ†éš”ç¬¦çš„å­—ç¬¦ä¸²ã€‚
+ * ç›¸å…³å‡½æ•°: PacketSavedataSimpleStringWithTime
+ *          
+ * å‚æ•°:    
+ *             pkg         EDPåŒ…, å¿…é¡»æ˜¯savedataåŒ…
+ *          	  output     å­˜å‚¨å‘é€æ¥çš„å­—ç¬¦ä¸²
+ *	         at		   å­˜å‚¨æ•°æ®åŒ…ä¸­è§£æå‡ºæ¥çš„æ—¶é—´ç»“æ„ä½“
+ * è¿”å›å€¼:  ç±»å‹ (int32) 
+ *          =0          è§£ææˆåŠŸ
+ *          <0          è§£æå¤±è´¥, å…·ä½“å¤±è´¥åŸå› è§æœ¬æ–‡ä»¶çš„é”™è¯¯ç 
+ */
+EDPKIT_DLL
+int32 UnpackSavedataSimpleStringWithTime(EdpPacket* pkg, char** output, LPDataTime at);
+
+/* 
+ * å‡½æ•°å:  PackSaveDataFloatWithTime
+ * åŠŸèƒ½:    æ‰“åŒ… è®¾å¤‡åˆ°è®¾å¤‡äº‘çš„EDPåè®®åŒ…, å­˜å‚¨æ•°æ®(å¸¦æ—¶é—´çš„floatæ•°æ®æµ,æœ€å¤š1000ä¸ªï¼Œ è¶…è¿‡è‡ªåŠ¨æˆªæ–­)
+ * è¯´æ˜:    è¿”å›çš„EDPåŒ…å‘é€ç»™è®¾å¤‡äº‘å, éœ€è¦åˆ é™¤è¿™ä¸ªåŒ…
+ * ç›¸å…³å‡½æ•°:UnpackSaveDataFloatWithTime
+ * å‚æ•°:    
+ *          dst_devid   ç›®çš„è®¾å¤‡IDã€‚
+ *                          ç©ºå­—ç¬¦ä¸²"" : ç›®çš„è®¾å¤‡ä¸ºé»˜è®¤è·¯ç”±è®¾å¤‡ã€‚
+ *                          NULL       ï¼š æ— ç›®çš„è®¾å¤‡ï¼Œä¸è½¬å‘ã€‚
+ *                          å…¶å®ƒï¼š     ï¼š è½¬å‘åˆ°æŒ‡å®šè®¾å¤‡ã€‚
+ *          input         floatæ•°æ®æµæ•°æ®
+ *                          é«˜å­—èŠ‚åœ¨å‰ï¼Œä½å­—èŠ‚åœ¨å(å³å°ç«¯)ï¼›
+ *                          åœ¨å¤§ç«¯æœºå™¨ä¸Šï¼Œéœ€å°†floatçš„å››ä¸ªå­—èŠ‚é¡ºåºé¢ å€’åå†å­˜å‚¨
+ *                          (è¯¦è§ã€Šè®¾å¤‡ç»ˆç«¯æ¥å…¥åè®®2-EDP.docxã€‹)
+ *          input_count floatæ•°æ®æµä¸ªæ•°ï¼Œæ¯æ¬¡æœ€å¤š1000ä¸ªï¼Œè¶…å‡ºè‡ªåŠ¨æˆªæ–­
+ *		at		  åŒ…å«å¹´æœˆæ—¥æ—¶åˆ†ç§’çš„æ—¶é—´ç»“æ„ä½“ï¼›NULL åˆ™ä½¿ç”¨å½“å‰æ—¶é—´
+ *          msg_id      æ¶ˆæ¯æ ‡å¿—
+ *                          0   ï¼šæ¶ˆæ¯æ ‡å¿—ä½å°†è¢«ç½®0ï¼ŒåŒ…ä¸­ä¸æºå¸¦æ¶ˆæ¯æ ‡å¿—ã€‚
+ *                          å…¶å®ƒï¼šæ¶ˆæ¯æ ‡å¿—ä½å°†è¢«ç½®1ï¼ŒåŒ…ä¸­æºå¸¦æ¶ˆæ¯æ ‡å¿—ã€‚
+ * è¿”å›å€¼:  ç±»å‹ (EdpPacket*) 
+ *          éç©º        EDPåè®®åŒ…
+ *          ä¸ºç©º        EDPåè®®åŒ…ç”Ÿæˆå¤±è´¥ 
+ */
+EDPKIT_DLL
+EdpPacket* PackSavedataFloatWithTime(const char* dst_devid, const FloatDPS* input, int input_count, const LPDataTime at, uint16 msg_id);
+
+/* 
+ * å‡½æ•°å:  UnpackSaveDataFloatWithTime
+ * åŠŸèƒ½:    è§£åŒ… ç”±è®¾å¤‡äº‘åˆ°è®¾å¤‡çš„EDPåè®®åŒ…, å­˜å‚¨æ•°æ®
+ * è¯´æ˜:    æ¥æ”¶è®¾å¤‡äº‘å‘æ¥çš„æ•°æ®, é€šè¿‡å‡½æ•°GetEdpPacketå’ŒEdpPacketTypeåˆ¤æ–­å‡ºæ˜¯savedataå,
+ *          å°†æ•´ä¸ªå“åº”EDPåŒ…ä½œä¸ºå‚æ•°, ç”±è¯¥å‡½æ•°è¿›è¡Œè§£æ,
+ *          è·å–æºç«¯å‘é€æ¥çš„ä»¥åˆ†å·ä½œä¸ºåˆ†éš”ç¬¦çš„å­—ç¬¦ä¸²ã€‚
+ * ç›¸å…³å‡½æ•°: PackSaveDataFloatWithTime
+ *          
+ * å‚æ•°:    pkg         EDPåŒ…, å¿…é¡»æ˜¯savedataåŒ…
+ *          	      output     å­˜å‚¨å‘é€æ¥çš„floatæ•°æ®æµï¼Œå†…éƒ¨åˆ†é…(malloc)ï¼Œå¤–éƒ¨ä½¿ç”¨å®Œåå¿…é¡»é‡Šæ”¾æ‰(free)
+  *                             é«˜å­—èŠ‚åœ¨å‰ï¼Œä½å­—èŠ‚åœ¨å(å³å°ç«¯)ï¼›
+ *                              åœ¨å¤§ç«¯æœºå™¨ä¸Šï¼Œéœ€å°†floatçš„å››ä¸ªå­—èŠ‚é¡ºåºé¢ å€’åå†ä½¿ç”¨
+ *                              (è¯¦è§ã€Šè®¾å¤‡ç»ˆç«¯æ¥å…¥åè®®2-EDP.docxã€‹)
+ *                 output_count floatæ•°æ®æµä¸ªæ•°ï¼Œä¸è¶…è¿‡1000
+ *		      at		å­˜å‚¨æ•°æ®åŒ…ä¸­è§£æå‡ºæ¥çš„æ—¶é—´ç»“æ„ä½“
+ * è¿”å›å€¼:  ç±»å‹ (int32) 
+ *          =0          è§£ææˆåŠŸ
+ *          <0          è§£æå¤±è´¥, å…·ä½“å¤±è´¥åŸå› è§æœ¬æ–‡ä»¶çš„é”™è¯¯ç 
+ */
+EDPKIT_DLL
+int32 UnpackSavedataFloatWithTime(EdpPacket* pkg, FloatDPS** output, int* out_cout, LPDataTime at);   
+
+
+/* 
+ * å‡½æ•°å:  PacketSavedataBin
+ * åŠŸèƒ½:    æ‰“åŒ… è®¾å¤‡åˆ°è®¾å¤‡äº‘çš„EDPåè®®åŒ…, å­˜å‚¨æ•°æ®(binæ ¼å¼æ•°æ®)
+ * è¯´æ˜:    è¿”å›çš„EDPåŒ…å‘é€ç»™è®¾å¤‡äº‘å, éœ€è¦åˆ é™¤è¿™ä¸ªåŒ…
+ * ç›¸å…³å‡½æ•°:UnpackSavedata, UnpackSavedataBin
+ * å‚æ•°: dst_devid      ç›®çš„è®¾å¤‡IDã€‚
+ *                      ç©ºå­—ç¬¦ä¸²"" : ç›®çš„è®¾å¤‡ä¸ºé»˜è®¤è·¯ç”±è®¾å¤‡ã€‚
+ *                      NULL       ï¼š æ— ç›®çš„è®¾å¤‡ï¼Œä¸è½¬å‘ã€‚
+ *                      å…¶å®ƒï¼š     ï¼š è½¬å‘åˆ°æŒ‡å®šè®¾å¤‡ã€‚
+ *          desc_obj    æ•°æ®æè¿° jsonæ ¼å¼
+ *          bin_data    äºŒè¿›åˆ¶æ•°æ®
+ *          bin_len     äºŒè¿›åˆ¶æ•°æ®é•¿åº¦
+ *          msg_id      æ¶ˆæ¯æ ‡å¿—
+ *                      0   ï¼šæ¶ˆæ¯æ ‡å¿—ä½å°†è¢«ç½®0ï¼ŒåŒ…ä¸­ä¸æºå¸¦æ¶ˆæ¯æ ‡å¿—ã€‚
+ *                      å…¶å®ƒï¼šæ¶ˆæ¯æ ‡å¿—ä½å°†è¢«ç½®1ï¼ŒåŒ…ä¸­æºå¸¦æ¶ˆæ¯æ ‡å¿—ã€‚
+ * è¿”å›å€¼:  ç±»å‹ (EdpPacket*) 
+ *          éç©º        EDPåè®®åŒ…
+ *          ä¸ºç©º        EDPåè®®åŒ…ç”Ÿæˆå¤±è´¥ 
+ */
+EdpPacket* PacketSavedataBin(const char* dst_devid, cJSON* desc_obj,
+                             const uint8* bin_data, uint32 bin_len, uint16 msg_id);
+/* 
+ * å‡½æ•°å:  PacketSavedataBinStr
+ * åŠŸèƒ½:    æ‰“åŒ… è®¾å¤‡åˆ°è®¾å¤‡äº‘çš„EDPåè®®åŒ…, å­˜å‚¨æ•°æ®(binæ ¼å¼æ•°æ®)
+ * è¯´æ˜:    è¿”å›çš„EDPåŒ…å‘é€ç»™è®¾å¤‡äº‘å, éœ€è¦åˆ é™¤è¿™ä¸ªåŒ…
+ * ç›¸å…³å‡½æ•°:UnpackSavedata, UnpackSavedataBin
+ * å‚æ•°:    dst_devid   ç›®çš„è®¾å¤‡IDã€‚
+ *                      ç©ºå­—ç¬¦ä¸²"" : ç›®çš„è®¾å¤‡ä¸ºé»˜è®¤è·¯ç”±è®¾å¤‡ã€‚
+ *                      NULL       ï¼š æ— ç›®çš„è®¾å¤‡ï¼Œä¸è½¬å‘ã€‚
+ *                      å…¶å®ƒï¼š     ï¼š è½¬å‘åˆ°æŒ‡å®šè®¾å¤‡ã€‚
+ *          desc_obj    æ•°æ®æè¿° å­—ç¬¦ä¸²æ ¼å¼
+ *          bin_data    äºŒè¿›åˆ¶æ•°æ®
+ *          bin_len     äºŒè¿›åˆ¶æ•°æ®é•¿åº¦
+ *          msg_id      æ¶ˆæ¯æ ‡å¿—
+ *                      0   ï¼šæ¶ˆæ¯æ ‡å¿—ä½å°†è¢«ç½®0ï¼ŒåŒ…ä¸­ä¸æºå¸¦æ¶ˆæ¯æ ‡å¿—ã€‚
+ *                      å…¶å®ƒï¼šæ¶ˆæ¯æ ‡å¿—ä½å°†è¢«ç½®1ï¼ŒåŒ…ä¸­æºå¸¦æ¶ˆæ¯æ ‡å¿—ã€‚
+ * è¿”å›å€¼:  ç±»å‹ (EdpPacket*) 
+ *          éç©º        EDPåè®®åŒ…
+ *          ä¸ºç©º        EDPåè®®åŒ…ç”Ÿæˆå¤±è´¥ 
+ */
+EDPKIT_DLL
+EdpPacket* PacketSavedataBinStr(const char* dst_devid, const char* desc_str,
+                                const uint8* bin_data, uint32 bin_len, uint16 msg_id);
+
+/* 
+ * å‡½æ•°å:  UnpackSavedata
+ * åŠŸèƒ½:    è§£åŒ… ç”±è®¾å¤‡äº‘åˆ°è®¾å¤‡çš„EDPåè®®åŒ…, å­˜å‚¨æ•°æ®
+ * è¯´æ˜:    æ¥æ”¶è®¾å¤‡äº‘å‘æ¥çš„æ•°æ®, é€šè¿‡å‡½æ•°GetEdpPacketå’ŒEdpPacketTypeåˆ¤æ–­å‡ºæ˜¯savedataå,
+ *          å°†æ•´ä¸ªå“åº”EDPåŒ…ä½œä¸ºå‚æ•°, ç”±è¯¥å‡½æ•°è¿›è¡Œè§£æ 
+ *          ç„¶åå†æ ¹æ®jsonå’Œbinçš„æ ‡è¯†(jb_flag), è°ƒç”¨ç›¸åº”çš„è§£æå‡½æ•°
+ *          è¿”å›çš„æºè®¾å¤‡ID(src_devid)éœ€è¦å®¢æˆ·ç«¯é‡Šæ”¾
+ * ç›¸å…³å‡½æ•°:PacketSavedataJson, PacketSavedataBin, GetEdpPacket, 
  *          UnpackSavedataJson, UnpackSavedataBin
- * ²ÎÊı:    pkg         EDP°ü, ±ØĞëÊÇsavedata°ü
- *          src_devid   Ô´Éè±¸ID
- *          jb_flag     json or binÊı¾İ, 1: json, 2: ¶ş½øÖÆ
- * ·µ»ØÖµ:  ÀàĞÍ (int32) 
- *          =0          ½âÎö³É¹¦
- *          <0          ½âÎöÊ§°Ü, ¾ßÌåÊ§°ÜÔ­Òò¼û±¾hÎÄ¼şµÄ´íÎóÂë
+ * å‚æ•°:    pkg         EDPåŒ…, å¿…é¡»æ˜¯savedataåŒ…
+ *          src_devid   æºè®¾å¤‡ID
+ *          jb_flag     json or binæ•°æ®, 1: json, 2: äºŒè¿›åˆ¶
+ * è¿”å›å€¼:  ç±»å‹ (int32)
+ *          =0          è§£ææˆåŠŸ
+ *          <0          è§£æå¤±è´¥, å…·ä½“å¤±è´¥åŸå› è§æœ¬hæ–‡ä»¶çš„é”™è¯¯ç 
  */
-EDPKIT_DLL int32 UnpackSavedata(EdpPacket* pkg, char** src_devid, uint8* jb_flag);
+EDPKIT_DLL
+int32 UnpackSavedata(EdpPacket* pkg, char** src_devid, uint8* jb_flag);
 
 /* 
- * º¯ÊıÃû:  UnpackSavedataJson
- * ¹¦ÄÜ:    ½â°ü ÓÉÉè±¸ÔÆµ½Éè±¸µÄEDPĞ­Òé°ü, ´æ´¢Êı¾İ(json¸ñÊ½Êı¾İ)
- * ËµÃ÷:    ·µ»ØµÄjsonÊı¾İ(json_obj)ĞèÒª¿Í»§¶ËÊÍ·Å
- * Ïà¹Øº¯Êı:PacketSavedataJson, GetEdpPacket, EdpPacketType, UnpackSavedata
- * ²ÎÊı:    pkg         EDP°ü, ±ØĞëÊÇsavedata°üµÄjsonÊı¾İ°ü
- *          json_obj    jsonÊı¾İ 
- * ·µ»ØÖµ:  ÀàĞÍ (int32) 
- *          =0          ½âÎö³É¹¦
- *          <0          ½âÎöÊ§°Ü, ¾ßÌåÊ§°ÜÔ­Òò¼û±¾hÎÄ¼şµÄ´íÎóÂë
+ * å‡½æ•°å:  UnpackSavedataJson
+ * åŠŸèƒ½:    è§£åŒ… ç”±è®¾å¤‡äº‘åˆ°è®¾å¤‡çš„EDPåè®®åŒ…, å­˜å‚¨æ•°æ®(jsonæ ¼å¼æ•°æ®)
+ * è¯´æ˜:    è¿”å›çš„jsonæ•°æ®(json_obj)éœ€è¦å®¢æˆ·ç«¯é‡Šæ”¾
+ * ç›¸å…³å‡½æ•°:PacketSavedataJson, GetEdpPacket, EdpPacketType, UnpackSavedata
+ * å‚æ•°:    pkg         EDPåŒ…, å¿…é¡»æ˜¯savedataåŒ…çš„jsonæ•°æ®åŒ…
+ *          json_obj    jsonæ•°æ® 
+ * è¿”å›å€¼:  ç±»å‹ (int32) 
+ *          =0          è§£ææˆåŠŸ
+ *          <0          è§£æå¤±è´¥, å…·ä½“å¤±è´¥åŸå› è§æœ¬hæ–‡ä»¶çš„é”™è¯¯ç 
  */
 int32 UnpackSavedataJson(EdpPacket* pkg, cJSON** json_obj);
 
 /* 
- * º¯ÊıÃû:  UnpackSavedataBin
- * ¹¦ÄÜ:    ½â°ü ÓÉÉè±¸ÔÆµ½Éè±¸µÄEDPĞ­Òé°ü, ´æ´¢Êı¾İ(bin¸ñÊ½Êı¾İ)
- * ËµÃ÷:    ·µ»ØµÄÊı¾İÃèÊö(desc_obj)ºÍbinÊı¾İ(bin_data)ĞèÒª¿Í»§¶ËÊÍ·Å
- * Ïà¹Øº¯Êı:PacketSavedataBin, GetEdpPacket, EdpPacketType, UnpackSavedata
- * ²ÎÊı:    pkg         EDP°ü, ±ØĞëÊÇsavedata°üµÄbinÊı¾İ°ü
- *          desc_obj    Êı¾İÃèÊö json¸ñÊ½
- *          bin_data    ¶ş½øÖÆÊı¾İ
- *          bin_len     ¶ş½øÖÆÊı¾İ³¤¶È
- * ·µ»ØÖµ:  ÀàĞÍ (int32) 
- *          =0          ½âÎö³É¹¦
- *          <0          ½âÎöÊ§°Ü, ¾ßÌåÊ§°ÜÔ­Òò¼û±¾hÎÄ¼şµÄ´íÎóÂë
+ * å‡½æ•°å:  UnpackSavedataBin
+ * åŠŸèƒ½:    è§£åŒ… ç”±è®¾å¤‡äº‘åˆ°è®¾å¤‡çš„EDPåè®®åŒ…, å­˜å‚¨æ•°æ®(binæ ¼å¼æ•°æ®)
+ * è¯´æ˜:    è¿”å›çš„æ•°æ®æè¿°(desc_obj)å’Œbinæ•°æ®(bin_data)éœ€è¦å®¢æˆ·ç«¯é‡Šæ”¾
+ * ç›¸å…³å‡½æ•°:PacketSavedataBin, GetEdpPacket, EdpPacketType, UnpackSavedata
+ * å‚æ•°:    pkg         EDPåŒ…, å¿…é¡»æ˜¯savedataåŒ…çš„binæ•°æ®åŒ…
+ *          desc_obj    æ•°æ®æè¿° jsonæ ¼å¼
+ *          bin_data    äºŒè¿›åˆ¶æ•°æ®
+ *          bin_len     äºŒè¿›åˆ¶æ•°æ®é•¿åº¦
+ * è¿”å›å€¼:  ç±»å‹ (int32) 
+ *          =0          è§£ææˆåŠŸ
+ *          <0          è§£æå¤±è´¥, å…·ä½“å¤±è´¥åŸå› è§æœ¬hæ–‡ä»¶çš„é”™è¯¯ç 
  */
-int32 UnpackSavedataBin(EdpPacket* pkg, cJSON** desc_obj, 
-        uint8** bin_data, uint32* bin_len);
+int32 UnpackSavedataBin(EdpPacket* pkg, cJSON** desc_obj,
+                        uint8** bin_data, uint32* bin_len);
 /* 
- * º¯ÊıÃû:  UnpackSavedataBinStr
- * ¹¦ÄÜ:    ½â°ü ÓÉÉè±¸ÔÆµ½Éè±¸µÄEDPĞ­Òé°ü, ´æ´¢Êı¾İ(bin¸ñÊ½Êı¾İ)
- * ËµÃ÷:    ·µ»ØµÄÊı¾İÃèÊö(desc_obj)ºÍbinÊı¾İ(bin_data)ĞèÒª¿Í»§¶ËÊÍ·Å
- * Ïà¹Øº¯Êı:PacketSavedataBin, GetEdpPacket, EdpPacketType, UnpackSavedata
- * ²ÎÊı:    pkg         EDP°ü, ±ØĞëÊÇsavedata°üµÄbinÊı¾İ°ü
- *          desc_obj    Êı¾İÃèÊö string¸ñÊ½
- *          bin_data    ¶ş½øÖÆÊı¾İ
- *          bin_len     ¶ş½øÖÆÊı¾İ³¤¶È
- * ·µ»ØÖµ:  ÀàĞÍ (int32) 
- *          =0          ½âÎö³É¹¦
- *          <0          ½âÎöÊ§°Ü, ¾ßÌåÊ§°ÜÔ­Òò¼û±¾hÎÄ¼şµÄ´íÎóÂë
+ * å‡½æ•°å:  UnpackSavedataBinStr
+ * åŠŸèƒ½:    è§£åŒ… ç”±è®¾å¤‡äº‘åˆ°è®¾å¤‡çš„EDPåè®®åŒ…, å­˜å‚¨æ•°æ®(binæ ¼å¼æ•°æ®)
+ * è¯´æ˜:    è¿”å›çš„æ•°æ®æè¿°(desc_obj)å’Œbinæ•°æ®(bin_data)éœ€è¦å®¢æˆ·ç«¯é‡Šæ”¾
+ * ç›¸å…³å‡½æ•°:PacketSavedataBin, GetEdpPacket, EdpPacketType, UnpackSavedata
+ * å‚æ•°:    pkg         EDPåŒ…, å¿…é¡»æ˜¯savedataåŒ…çš„binæ•°æ®åŒ…
+ *          desc_obj    æ•°æ®æè¿° stringæ ¼å¼
+ *          bin_data    äºŒè¿›åˆ¶æ•°æ®
+ *          bin_len     äºŒè¿›åˆ¶æ•°æ®é•¿åº¦
+ * è¿”å›å€¼:  ç±»å‹ (int32) 
+ *          =0          è§£ææˆåŠŸ
+ *          <0          è§£æå¤±è´¥, å…·ä½“å¤±è´¥åŸå› è§æœ¬hæ–‡ä»¶çš„é”™è¯¯ç 
  */
-EDPKIT_DLL int32 UnpackSavedataBinStr(EdpPacket* pkg, char** desc_str, 
-        uint8** bin_data, uint32* bin_len);
+EDPKIT_DLL
+int32 UnpackSavedataBinStr(EdpPacket* pkg, char** desc_str,
+                           uint8** bin_data, uint32* bin_len);
 /* 
- * º¯ÊıÃû:  PacketCmdResp
- * ¹¦ÄÜ:    Ïò½ÓÈë»ú·¢ËÍÃüÁîÏìÓ¦
- * ËµÃ÷:    ·µ»ØµÄEDP°ü·¢ËÍ¸øÉè±¸ÔÆºó, ĞèÒª¿Í»§³ÌĞòÉ¾³ı¸Ã°ü
+ * å‡½æ•°å:  PacketCmdResp
+ * åŠŸèƒ½:    å‘æ¥å…¥æœºå‘é€å‘½ä»¤å“åº”
+ * è¯´æ˜:    è¿”å›çš„EDPåŒ…å‘é€ç»™è®¾å¤‡äº‘å, éœ€è¦å®¢æˆ·ç¨‹åºåˆ é™¤è¯¥åŒ…
  *          
- * Ïà¹Øº¯Êı:UnpackCmdReq
- * ²ÎÊı:    cmdid       ÃüÁîid
- *          cmdid_len   ÃüÁîid³¤¶È
- *          resp        ÏìÓ¦µÄÏûÏ¢
- *          resp_len    ÏìÓ¦ÏûÏ¢³¤¶È
- * ·µ»ØÖµ:  ÀàĞÍ (EdpPacket*) 
- *          ·Ç¿Õ        EDPĞ­Òé°ü
- *          Îª¿Õ        EDPĞ­Òé°üÉú³ÉÊ§°Ü 
+ * ç›¸å…³å‡½æ•°:UnpackCmdReq
+ * å‚æ•°:    cmdid       å‘½ä»¤id
+ *          cmdid_len   å‘½ä»¤idé•¿åº¦
+ *          resp        å“åº”çš„æ¶ˆæ¯
+ *          resp_len    å“åº”æ¶ˆæ¯é•¿åº¦
+ * è¿”å›å€¼:  ç±»å‹ (EdpPacket*) 
+ *          éç©º        EDPåè®®åŒ…
+ *          ä¸ºç©º        EDPåè®®åŒ…ç”Ÿæˆå¤±è´¥ 
  */
-EDPKIT_DLL EdpPacket* PacketCmdResp(const char* cmdid, uint16 cmdid_len, 
-        const char* resp, uint32 resp_len);
+EDPKIT_DLL
+EdpPacket* PacketCmdResp(const char* cmdid, uint16 cmdid_len,
+                         const char* resp, uint32 resp_len);
 
 /* 
- * º¯ÊıÃû:  UnpackCmdReq
- * ¹¦ÄÜ:    ½â°ü ÓÉÉè±¸ÔÆµ½Éè±¸µÄEDPĞ­Òé°ü, ÃüÁîÇëÇóÏûÏ¢
- * ËµÃ÷:    ½ÓÊÕÉè±¸ÔÆ·¢À´µÄÊı¾İ, ½âÎöÃüÁîÇëÇóÏûÏ¢°ü
- *          »ñÈ¡µÄcmdidÒÔ¼°reqĞèÒªÔÚÊ¹ÓÃºóÊÍ·Å¡£
- * Ïà¹Øº¯Êı:PacketCmdResp
- * ²ÎÊı:    pkg         EDP°ü
- *          cmdid       »ñÈ¡ÃüÁîid
- *          cmdid_len   cmdidµÄ³¤¶È
- *          req         ÓÃ»§ÃüÁîµÄÆğÊ¼Î»ÖÃ
- *          req_len     ÓÃ»§ÃüÁîµÄ³¤¶È
- * ·µ»ØÖµ:  ÀàĞÍ (int32) 
- *          =0          ½âÎö³É¹¦
- *          <0          ½âÎöÊ§°Ü, ¾ßÌåÊ§°ÜÔ­Òò¼û±¾hÎÄ¼şµÄ´íÎóÂë
+ * å‡½æ•°å:  UnpackCmdReq
+ * åŠŸèƒ½:    è§£åŒ… ç”±è®¾å¤‡äº‘åˆ°è®¾å¤‡çš„EDPåè®®åŒ…, å‘½ä»¤è¯·æ±‚æ¶ˆæ¯
+ * è¯´æ˜:    æ¥æ”¶è®¾å¤‡äº‘å‘æ¥çš„æ•°æ®, è§£æå‘½ä»¤è¯·æ±‚æ¶ˆæ¯åŒ…
+ *          è·å–çš„cmdidä»¥åŠreqéœ€è¦åœ¨ä½¿ç”¨åé‡Šæ”¾ã€‚
+ * ç›¸å…³å‡½æ•°:PacketCmdResp
+ * å‚æ•°:    pkg         EDPåŒ…
+ *          cmdid       è·å–å‘½ä»¤id
+ *          cmdid_len   cmdidçš„é•¿åº¦
+ *          req         ç”¨æˆ·å‘½ä»¤çš„èµ·å§‹ä½ç½®
+ *          req_len     ç”¨æˆ·å‘½ä»¤çš„é•¿åº¦
+ * è¿”å›å€¼:  ç±»å‹ (int32) 
+ *          =0          è§£ææˆåŠŸ
+ *          <0          è§£æå¤±è´¥, å…·ä½“å¤±è´¥åŸå› è§æœ¬hæ–‡ä»¶çš„é”™è¯¯ç 
  */
-EDPKIT_DLL int32 UnpackCmdReq(EdpPacket* pkg, char** cmdid, uint16* cmdid_len, 
-			      char** req, uint32* req_len);
+EDPKIT_DLL
+int32 UnpackCmdReq(EdpPacket* pkg, char** cmdid, uint16* cmdid_len,
+                   char** req, uint32* req_len);
 
 /* 
- * º¯ÊıÃû:  PacketPing
- * ¹¦ÄÜ:    ´ò°ü ÓÉÉè±¸µ½Éè±¸ÔÆµÄEDPĞ­Òé°ü, ĞÄÌø
- * ËµÃ÷:    ·µ»ØµÄEDP°ü·¢ËÍ¸øÉè±¸ÔÆºó, ĞèÒª¿Í»§³ÌĞòÉ¾³ı¸Ã°ü
- *          Éè±¸ÔÆ»á»Ø¸´ĞÄÌøÏìÓ¦¸øÉè±¸
- * Ïà¹Øº¯Êı:UnpackPingResp
- * ²ÎÊı:    ÎŞ
- * ·µ»ØÖµ:  ÀàĞÍ (EdpPacket*) 
- *          ·Ç¿Õ        EDPĞ­Òé°ü
- *          Îª¿Õ        EDPĞ­Òé°üÉú³ÉÊ§°Ü 
+ * å‡½æ•°å:  PacketPing
+ * åŠŸèƒ½:    æ‰“åŒ… ç”±è®¾å¤‡åˆ°è®¾å¤‡äº‘çš„EDPåè®®åŒ…, å¿ƒè·³
+ * è¯´æ˜:    è¿”å›çš„EDPåŒ…å‘é€ç»™è®¾å¤‡äº‘å, éœ€è¦å®¢æˆ·ç¨‹åºåˆ é™¤è¯¥åŒ…
+ *          è®¾å¤‡äº‘ä¼šå›å¤å¿ƒè·³å“åº”ç»™è®¾å¤‡
+ * ç›¸å…³å‡½æ•°:UnpackPingResp
+ * å‚æ•°:    æ— 
+ * è¿”å›å€¼:  ç±»å‹ (EdpPacket*) 
+ *          éç©º        EDPåè®®åŒ…
+ *          ä¸ºç©º        EDPåè®®åŒ…ç”Ÿæˆå¤±è´¥ 
  */
-EDPKIT_DLL EdpPacket* PacketPing(void);
+EDPKIT_DLL
+EdpPacket* PacketPing(void);
 
 /* 
- * º¯ÊıÃû:  UnpackPingResp
- * ¹¦ÄÜ:    ½â°ü ÓÉÉè±¸ÔÆµ½Éè±¸µÄEDPĞ­Òé°ü, ĞÄÌøÏìÓ¦
- * ËµÃ÷:    ½ÓÊÕÉè±¸ÔÆ·¢À´µÄÊı¾İ, Í¨¹ıº¯ÊıGetEdpPacketºÍEdpPacketTypeÅĞ¶Ï³öÊÇÁ¬½ÓÏìÓ¦ºó, 
- *          ½«Õû¸öÏìÓ¦EDP°ü×÷Îª²ÎÊı, ÓÉ¸Ãº¯Êı½øĞĞ½âÎö
- * Ïà¹Øº¯Êı:PacketPing, GetEdpPacket, EdpPacketType
- * ²ÎÊı:    pkg         EDP°ü, ±ØĞëÊÇÁ¬½ÓÏìÓ¦°ü
- * ·µ»ØÖµ:  ÀàĞÍ (int32) 
- *          =0          ĞÄÌø³É¹¦
- *          >0          ĞÄÌøÊ§°Ü, ¾ßÌåÊ§°ÜÔ­Òò¼û<OneNet½ÓÈë·½°¸Óë½Ó¿Ú.docx>
- *          <0          ½âÎöÊ§°Ü, ¾ßÌåÊ§°ÜÔ­Òò¼û±¾hÎÄ¼şµÄ´íÎóÂë
+ * å‡½æ•°å:  UnpackPingResp
+ * åŠŸèƒ½:    è§£åŒ… ç”±è®¾å¤‡äº‘åˆ°è®¾å¤‡çš„EDPåè®®åŒ…, å¿ƒè·³å“åº”
+ * è¯´æ˜:    æ¥æ”¶è®¾å¤‡äº‘å‘æ¥çš„æ•°æ®, é€šè¿‡å‡½æ•°GetEdpPacketå’ŒEdpPacketTypeåˆ¤æ–­å‡ºæ˜¯è¿æ¥å“åº”å, 
+ *          å°†æ•´ä¸ªå“åº”EDPåŒ…ä½œä¸ºå‚æ•°, ç”±è¯¥å‡½æ•°è¿›è¡Œè§£æ
+ * ç›¸å…³å‡½æ•°:PacketPing, GetEdpPacket, EdpPacketType
+ * å‚æ•°:    pkg         EDPåŒ…, å¿…é¡»æ˜¯è¿æ¥å“åº”åŒ…
+ * è¿”å›å€¼:  ç±»å‹ (int32) 
+ *          =0          å¿ƒè·³æˆåŠŸ
+ *          >0          å¿ƒè·³å¤±è´¥, å…·ä½“å¤±è´¥åŸå› è§<OneNetæ¥å…¥æ–¹æ¡ˆä¸æ¥å£.docx>
+ *          <0          è§£æå¤±è´¥, å…·ä½“å¤±è´¥åŸå› è§æœ¬hæ–‡ä»¶çš„é”™è¯¯ç 
  */
-EDPKIT_DLL int32 UnpackPingResp(EdpPacket* pkg);
+EDPKIT_DLL
+int32 UnpackPingResp(EdpPacket* pkg);
 
 #ifdef __cplusplus
 }

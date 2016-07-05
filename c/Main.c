@@ -1,4 +1,4 @@
-#include <stdio.h>
+ï»¿#include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
 #include <string.h>
@@ -13,31 +13,31 @@
 #include "Openssl.h"
 #endif
 /*
- * [ËµÃ÷]
- * Main.c ÊÇÎªÁË²âÊÔEdpKit¶øĞ´µÄ, Ò²ÊÇ¸ø¿Í»§Õ¹Ê¾ÈçºÎÊ¹ÓÃEdpKit
- * Main.c Ê¹ÓÃµÄÊÇc & linux socket
+ * [è¯´æ˜]
+ * Main.c æ˜¯ä¸ºäº†æµ‹è¯•EdpKitè€Œå†™çš„, ä¹Ÿæ˜¯ç»™å®¢æˆ·å±•ç¤ºå¦‚ä½•ä½¿ç”¨EdpKit
+ * Main.c ä½¿ç”¨çš„æ˜¯c & linux socket
  *
- * ²âÊÔ°üº¬ÁË£º
- *      ´ò°üEDP°ü²¢·¢ËÍ£ºÁ¬½ÓÉè±¸ÔÆÇëÇó, ĞÄÌøÇëÇó, ×ª·¢Êı¾İ, ´æ´¢jsonÊı¾İ, ´æ´¢binÊı¾İ
- *      ½ÓÊÕ²¢½âÎöEDP°ü£ºÁ¬½ÓÉè±¸ÔÆÇëÇóÏìÓ¦, ĞÄÌøÇëÇóÏìÓ¦, ×ª·¢Êı¾İ, ´æ´¢jsonÊı¾İ, ´æ´¢binÊı¾İ
+ * æµ‹è¯•åŒ…å«äº†ï¼š
+ *      æ‰“åŒ…EDPåŒ…å¹¶å‘é€ï¼šè¿æ¥è®¾å¤‡äº‘è¯·æ±‚, å¿ƒè·³è¯·æ±‚, è½¬å‘æ•°æ®, å­˜å‚¨jsonæ•°æ®, å­˜å‚¨binæ•°æ®
+ *      æ¥æ”¶å¹¶è§£æEDPåŒ…ï¼šè¿æ¥è®¾å¤‡äº‘è¯·æ±‚å“åº”, å¿ƒè·³è¯·æ±‚å“åº”, è½¬å‘æ•°æ®, å­˜å‚¨jsonæ•°æ®, å­˜å‚¨binæ•°æ®
  *
- * [×¢Òâ]
- * Main.c²»ÊôÓÚÎÒÃÇEDP SDKµÄÒ»²¿·Ö, ¿Í»§³ÌĞòÓ¦¸Ã¸ù¾İ×Ô¼ºµÄÏµÍ³Ğ´ÀàËÆMain.cµÄ´úÂë
- * ¿Í»§³ÌĞòÓ¦¸ÃÖ»°üº¬Common.h, cJSON.* ºÍ EdpKit.*, ¶ø²»Ó¦¸Ã°üº¬Main.c
+ * [æ³¨æ„]
+ * Main.cä¸å±äºæˆ‘ä»¬EDP SDKçš„ä¸€éƒ¨åˆ†, å®¢æˆ·ç¨‹åºåº”è¯¥æ ¹æ®è‡ªå·±çš„ç³»ç»Ÿå†™ç±»ä¼¼Main.cçš„ä»£ç 
+ * å®¢æˆ·ç¨‹åºåº”è¯¥åªåŒ…å«Common.h, cJSON.* å’Œ EdpKit.*, è€Œä¸åº”è¯¥åŒ…å«Main.c
  * 
- * ¼Ó½âÃÜÊÇÀûÓÃopenssl¿âÊµÏÖµÄ£¬Èç¹ûÓĞopenssl¿â£¬Ôò¿ÉÒÔÖ±½ÓÀûÓÃOpenssl.*ÎÄ¼şÖĞÌá¹©
- * µÄº¯ÊıÊµÏÖ¼Ó½âÃÜ¡£·ñÔòÓ¦¸Ã×Ô¼ºÊµÏÖOpenssl.hÖĞµÄº¯Êı¡£
- * Èç¹ûĞèÒª¼ÓÃÜ¹¦ÄÜ£¬Çë²Î¿¼MakefileÖĞµÄËµÃ÷£¬È¡ÏûÏàÓ¦ĞĞµÄ×¢ÊÍ¡£
+ * åŠ è§£å¯†æ˜¯åˆ©ç”¨opensslåº“å®ç°çš„ï¼Œå¦‚æœæœ‰opensslåº“ï¼Œåˆ™å¯ä»¥ç›´æ¥åˆ©ç”¨Openssl.*æ–‡ä»¶ä¸­æä¾›
+ * çš„å‡½æ•°å®ç°åŠ è§£å¯†ã€‚å¦åˆ™åº”è¯¥è‡ªå·±å®ç°Openssl.hä¸­çš„å‡½æ•°ã€‚
+ * å¦‚æœéœ€è¦åŠ å¯†åŠŸèƒ½ï¼Œè¯·å‚è€ƒMakefileä¸­çš„è¯´æ˜ï¼Œå–æ¶ˆç›¸åº”è¡Œçš„æ³¨é‡Šã€‚
  */
 
-/*----------------------------´íÎóÂë-----------------------------------------*/
+/*----------------------------é”™è¯¯ç -----------------------------------------*/
 #define ERR_CREATE_SOCKET   -1 
 #define ERR_HOSTBYNAME      -2 
 #define ERR_CONNECT         -3 
 #define ERR_SEND            -4
 #define ERR_TIMEOUT         -5
 #define ERR_RECV            -6
-/*---------------Í³Ò»linuxºÍwindowsÉÏµÄSocket api----------------------------*/
+/*---------------ç»Ÿä¸€linuxå’Œwindowsä¸Šçš„Socket api----------------------------*/
 #ifndef htonll
 #ifdef _BIG_ENDIAN
 #define htonll(x)   (x)
@@ -47,7 +47,7 @@
 #define ntohll(x)   ((((uint64)ntohl(x)) << 32) + ntohl(x >> 32))
 #endif
 #endif
-/* linux³ÌĞòĞèÒª¶¨Òå_LINUX */
+/* linuxç¨‹åºéœ€è¦å®šä¹‰_LINUX */
 #ifdef _LINUX
 #define Socket(a,b,c)          socket(a,b,c)
 #define Connect(a,b,c)         connect(a,b,c)
@@ -65,7 +65,7 @@
 static int g_is_encrypt = 0;
 
 /*
- * buffer°´Ê®Áù½øÖÆÊä³ö
+ * bufferæŒ‰åå…­è¿›åˆ¶è¾“å‡º
  */
 void hexdump(const unsigned char *buf, uint32 num)
 {
@@ -79,16 +79,16 @@ void hexdump(const unsigned char *buf, uint32 num)
     printf("\n");
 }
 /* 
- * º¯ÊıÃû:  Open
- * ¹¦ÄÜ:    ´´½¨socketÌ×½Ó×Ö²¢Á¬½Ó·şÎñ¶Ë
- * ²ÎÊı:    addr    ipµØÖ·
- *          protno  ¶Ë¿ÚºÅ
- * ËµÃ÷:    ÕâÀïÖ»ÊÇ¸ø³öÒ»¸ö´´½¨socketÁ¬½Ó·şÎñ¶ËµÄÀı×Ó, ÆäËû·½Ê½Çë²éÑ¯Ïà¹Øsocket api
- * Ïà¹Øsocket api:  
+ * å‡½æ•°å:  Open
+ * åŠŸèƒ½:    åˆ›å»ºsocketå¥—æ¥å­—å¹¶è¿æ¥æœåŠ¡ç«¯
+ * å‚æ•°:    addr    ipåœ°å€
+ *          protno  ç«¯å£å·
+ * è¯´æ˜:    è¿™é‡Œåªæ˜¯ç»™å‡ºä¸€ä¸ªåˆ›å»ºsocketè¿æ¥æœåŠ¡ç«¯çš„ä¾‹å­, å…¶ä»–æ–¹å¼è¯·æŸ¥è¯¢ç›¸å…³socket api
+ * ç›¸å…³socket api:  
  *          socket, gethostbyname, connect
- * ·µ»ØÖµ:  ÀàĞÍ (int32)
- *          <=0     ´´½¨socketÊ§°Ü
- *          >0      socketÃèÊö·û
+ * è¿”å›å€¼:  ç±»å‹ (int32)
+ *          <=0     åˆ›å»ºsocketå¤±è´¥
+ *          >0      socketæè¿°ç¬¦
  */
 int32 Open(const uint8 *addr, int16 portno)
 {
@@ -96,7 +96,7 @@ int32 Open(const uint8 *addr, int16 portno)
     struct sockaddr_in serv_addr;
     struct hostent *server;
 
-    /* ´´½¨socketÌ×½Ó×Ö */
+    /* åˆ›å»ºsocketå¥—æ¥å­— */
     sockfd = Socket(AF_INET, SOCK_STREAM, 0);
     if (sockfd < 0) {
         fprintf(stderr, "ERROR opening socket\n");
@@ -110,10 +110,10 @@ int32 Open(const uint8 *addr, int16 portno)
     bzero((char *) &serv_addr, sizeof(serv_addr));
     serv_addr.sin_family = AF_INET;
     bcopy((char *)server->h_addr, 
-            (char *)&serv_addr.sin_addr.s_addr,
-            server->h_length);
+          (char *)&serv_addr.sin_addr.s_addr,
+          server->h_length);
     serv_addr.sin_port = htons(portno);
-    /* ¿Í»§¶Ë ½¨Á¢ÓëTCP·şÎñÆ÷µÄÁ¬½Ó */
+    /* å®¢æˆ·ç«¯ å»ºç«‹ä¸TCPæœåŠ¡å™¨çš„è¿æ¥ */
     if (Connect(sockfd,(struct sockaddr *) &serv_addr,sizeof(serv_addr)) < 0) 
     {
         fprintf(stderr, "ERROR connecting\n");
@@ -125,18 +125,18 @@ int32 Open(const uint8 *addr, int16 portno)
     return sockfd;
 }
 /* 
- * º¯ÊıÃû:  DoSend
- * ¹¦ÄÜ:    ½«bufferÖĞµÄlen×Ö½ÚÄÚÈİĞ´Èë(·¢ËÍ)socketÃèÊö·ûsockfd, ³É¹¦Ê±·µ»ØĞ´µÄ(·¢ËÍµÄ)×Ö½ÚÊı.
- * ²ÎÊı:    sockfd  socketÃèÊö·û 
- *          buffer  Ğè·¢ËÍµÄ×Ö½Ú
- *          len     Ğè·¢ËÍµÄ³¤¶È
- * ËµÃ÷:    ÕâÀïÖ»ÊÇ¸ø³öÁËÒ»¸ö·¢ËÍÊı¾İµÄÀı×Ó, ÆäËû·½Ê½Çë²éÑ¯Ïà¹Øsocket api
- *          Ò»°ãÀ´Ëµ, ·¢ËÍ¶¼ĞèÒªÑ­»··¢ËÍ, ÊÇÒòÎªĞèÒª·¢ËÍµÄ×Ö½ÚÊı > socketµÄĞ´»º´æÇøÊ±, Ò»´ÎsendÊÇ·¢ËÍ²»ÍêµÄ.
- * Ïà¹Øsocket api:  
+ * å‡½æ•°å:  DoSend
+ * åŠŸèƒ½:    å°†bufferä¸­çš„lenå­—èŠ‚å†…å®¹å†™å…¥(å‘é€)socketæè¿°ç¬¦sockfd, æˆåŠŸæ—¶è¿”å›å†™çš„(å‘é€çš„)å­—èŠ‚æ•°.
+ * å‚æ•°:    sockfd  socketæè¿°ç¬¦ 
+ *          buffer  éœ€å‘é€çš„å­—èŠ‚
+ *          len     éœ€å‘é€çš„é•¿åº¦
+ * è¯´æ˜:    è¿™é‡Œåªæ˜¯ç»™å‡ºäº†ä¸€ä¸ªå‘é€æ•°æ®çš„ä¾‹å­, å…¶ä»–æ–¹å¼è¯·æŸ¥è¯¢ç›¸å…³socket api
+ *          ä¸€èˆ¬æ¥è¯´, å‘é€éƒ½éœ€è¦å¾ªç¯å‘é€, æ˜¯å› ä¸ºéœ€è¦å‘é€çš„å­—èŠ‚æ•° > socketçš„å†™ç¼“å­˜åŒºæ—¶, ä¸€æ¬¡sendæ˜¯å‘é€ä¸å®Œçš„.
+ * ç›¸å…³socket api:  
  *          send
- * ·µ»ØÖµ:  ÀàĞÍ (int32)
- *          <=0     ·¢ËÍÊ§°Ü
- *          >0      ³É¹¦·¢ËÍµÄ×Ö½ÚÊı
+ * è¿”å›å€¼:  ç±»å‹ (int32)
+ *          <=0     å‘é€å¤±è´¥
+ *          >0      æˆåŠŸå‘é€çš„å­—èŠ‚æ•°
  */
 int32 DoSend(int32 sockfd, const char* buffer, uint32 len)
 {
@@ -144,14 +144,14 @@ int32 DoSend(int32 sockfd, const char* buffer, uint32 len)
     int32 n = 0;
     while (len != total)
     {
-        /* ÊÔ×Å·¢ËÍlen - total¸ö×Ö½ÚµÄÊı¾İ */
+        /* è¯•ç€å‘é€len - totalä¸ªå­—èŠ‚çš„æ•°æ® */
         n = Send(sockfd,buffer + total,len - total,MSG_NOSIGNAL);
         if (n <= 0)
         {
             fprintf(stderr, "ERROR writing to socket\n");
             return n;
         }
-        /* ³É¹¦·¢ËÍÁËn¸ö×Ö½ÚµÄÊı¾İ */
+        /* æˆåŠŸå‘é€äº†nä¸ªå­—èŠ‚çš„æ•°æ® */
         total += n;
     }
     /* wululu test print send bytes */
@@ -159,14 +159,14 @@ int32 DoSend(int32 sockfd, const char* buffer, uint32 len)
     return total;
 }
 /* 
- * º¯ÊıÃû:  recv_thread_func
- * ¹¦ÄÜ:    ½ÓÊÕÏß³Ìº¯Êı
- * ²ÎÊı:    arg     socketÃèÊö·û
- * ËµÃ÷:    ÕâÀïÖ»ÊÇ¸ø³öÁËÒ»¸ö´Ósocket½ÓÊÕÊı¾İµÄÀı×Ó, ÆäËû·½Ê½Çë²éÑ¯Ïà¹Øsocket api
- *          Ò»°ãÀ´Ëµ, ½ÓÊÕ¶¼ĞèÒªÑ­»·½ÓÊÕ, ÊÇÒòÎªĞèÒª½ÓÊÕµÄ×Ö½ÚÊı > socketµÄ¶Á»º´æÇøÊ±, Ò»´ÎrecvÊÇ½ÓÊÕ²»ÍêµÄ.
- * Ïà¹Øsocket api:  
+ * å‡½æ•°å:  recv_thread_func
+ * åŠŸèƒ½:    æ¥æ”¶çº¿ç¨‹å‡½æ•°
+ * å‚æ•°:    arg     socketæè¿°ç¬¦
+ * è¯´æ˜:    è¿™é‡Œåªæ˜¯ç»™å‡ºäº†ä¸€ä¸ªä»socketæ¥æ”¶æ•°æ®çš„ä¾‹å­, å…¶ä»–æ–¹å¼è¯·æŸ¥è¯¢ç›¸å…³socket api
+ *          ä¸€èˆ¬æ¥è¯´, æ¥æ”¶éƒ½éœ€è¦å¾ªç¯æ¥æ”¶, æ˜¯å› ä¸ºéœ€è¦æ¥æ”¶çš„å­—èŠ‚æ•° > socketçš„è¯»ç¼“å­˜åŒºæ—¶, ä¸€æ¬¡recvæ˜¯æ¥æ”¶ä¸å®Œçš„.
+ * ç›¸å…³socket api:  
  *          recv
- * ·µ»ØÖµ:  ÎŞ
+ * è¿”å›å€¼:  æ— 
  */
 void recv_thread_func(void* arg)
 {
@@ -189,7 +189,8 @@ void recv_thread_func(void* arg)
     char* desc_json_str;
     char* save_bin; 
     uint32 save_binlen;
-    char* json_ack;
+    unsigned short msg_id;
+    unsigned char save_date_ret;
 
     char* cmdid;
     uint16 cmdid_len;
@@ -205,6 +206,12 @@ void recv_thread_func(void* arg)
     char cmd_resp[] = "ok";
     unsigned cmd_resp_len = 0;
 
+	DataTime stTime = {0};
+
+    FloatDPS* float_data = NULL;
+    int count = 0;
+    int i = 0;
+
 
 #ifdef _DEBUG
     printf("[%s] recv thread start ...\n", __func__);
@@ -212,142 +219,161 @@ void recv_thread_func(void* arg)
 
     while (error == 0)
     {
-        /* ÊÔ×Å½ÓÊÕ1024¸ö×Ö½ÚµÄÊı¾İ */
+        /* è¯•ç€æ¥æ”¶1024ä¸ªå­—èŠ‚çš„æ•°æ® */
         n = Recv(sockfd, buffer, 1024, MSG_NOSIGNAL);
         if (n <= 0)
             break;
         printf("recv from server, bytes: %d\n", n);
         /* wululu test print send bytes */
         hexdump((const unsigned char *)buffer, n);
-        /* ³É¹¦½ÓÊÕÁËn¸ö×Ö½ÚµÄÊı¾İ */
+        /* æˆåŠŸæ¥æ”¶äº†nä¸ªå­—èŠ‚çš„æ•°æ® */
         WriteBytes(recv_buf, buffer, n);
         while (1)
         {
-            /* »ñÈ¡Ò»¸öÍê³ÉµÄEDP°ü */
+            /* è·å–ä¸€ä¸ªå®Œæˆçš„EDPåŒ… */
             if ((pkg = GetEdpPacket(recv_buf)) == 0)
             {
                 printf("need more bytes...\n");
                 break;
             }
-            /* »ñÈ¡Õâ¸öEDP°üµÄÏûÏ¢ÀàĞÍ */
+            /* è·å–è¿™ä¸ªEDPåŒ…çš„æ¶ˆæ¯ç±»å‹ */
             mtype = EdpPacketType(pkg);
 #ifdef _ENCRYPT
-	    if (mtype != ENCRYPTRESP){
-		if (g_is_encrypt){
-		    SymmDecrypt(pkg);
-		}
-	    }
+            if (mtype != ENCRYPTRESP){
+                if (g_is_encrypt){
+                    SymmDecrypt(pkg);
+                }
+            }
 #endif
-            /* ¸ù¾İÕâ¸öEDP°üµÄÏûÏ¢ÀàĞÍ, ·Ö±ğ×öEDP°ü½âÎö */
+            /* æ ¹æ®è¿™ä¸ªEDPåŒ…çš„æ¶ˆæ¯ç±»å‹, åˆ†åˆ«åšEDPåŒ…è§£æ */
             switch(mtype)
             {
 #ifdef _ENCRYPT
-	    case ENCRYPTRESP:
-		UnpackEncryptResp(pkg);
-		break;
+            case ENCRYPTRESP:
+                UnpackEncryptResp(pkg);
+                break;
 #endif
-                case CONNRESP:
-                    /* ½âÎöEDP°ü - Á¬½ÓÏìÓ¦ */
-                    rtn = UnpackConnectResp(pkg);
-                    printf("recv connect resp, rtn: %d\n", rtn);
-                    break;
-                case PUSHDATA:
-                    /* ½âÎöEDP°ü - Êı¾İ×ª·¢ */
-                    UnpackPushdata(pkg, &src_devid, &push_data, &push_datalen);
-                    printf("recv push data, src_devid: %s, push_data: %s, len: %d\n", 
-                            src_devid, push_data, push_datalen);
-                    free(src_devid);
-                    free(push_data);
-                    break;
-	    case SAVEDATA:
-                    /* ½âÎöEDP°ü - Êı¾İ´æ´¢ */
-                    if (UnpackSavedata(pkg, &src_devid, &jsonorbin) == 0)
+            case CONNRESP:
+                /* è§£æEDPåŒ… - è¿æ¥å“åº” */
+                rtn = UnpackConnectResp(pkg);
+                printf("recv connect resp, rtn: %d\n", rtn);
+                break;
+            case PUSHDATA:
+                /* è§£æEDPåŒ… - æ•°æ®è½¬å‘ */
+                UnpackPushdata(pkg, &src_devid, &push_data, &push_datalen);
+                printf("recv push data, src_devid: %s, push_data: %s, len: %d\n",
+                       src_devid, push_data, push_datalen);
+                free(src_devid);
+                free(push_data);
+                break;
+            case SAVEDATA:
+                /* è§£æEDPåŒ… - æ•°æ®å­˜å‚¨ */
+                if (UnpackSavedata(pkg, &src_devid, &jsonorbin) == 0)
+                {
+                    if (jsonorbin == kTypeFullJson
+                        || jsonorbin == kTypeSimpleJsonWithoutTime
+                        || jsonorbin == kTypeSimpleJsonWithTime)
                     {
-                        if (jsonorbin == kTypeFullJson 
-			    || jsonorbin == kTypeSimpleJsonWithoutTime
-			    || jsonorbin == kTypeSimpleJsonWithTime) 
-			    {
-				printf("json type is %d\n", jsonorbin);
-				/* ½âÎöEDP°ü - jsonÊı¾İ´æ´¢ */ 
-                            /* UnpackSavedataJson(pkg, &save_json); */
-                            /* save_json_str=cJSON_Print(save_json); */
-                            /* printf("recv save data json, src_devid: %s, json: %s\n", */
-                            /*     src_devid, save_json_str); */
-                            /* free(save_json_str); */
-                            /* cJSON_Delete(save_json); */
+                        printf("json type is %d\n", jsonorbin);
+                        /* è§£æEDPåŒ… - jsonæ•°æ®å­˜å‚¨ */
+                        /* UnpackSavedataJson(pkg, &save_json); */
+                        /* save_json_str=cJSON_Print(save_json); */
+                        /* printf("recv save data json, src_devid: %s, json: %s\n", */
+                        /*     src_devid, save_json_str); */
+                        /* free(save_json_str); */
+                        /* cJSON_Delete(save_json); */
 
-				/* UnpackSavedataInt(jsonorbin, pkg, &ds_id, &iValue); */
-				/* printf("ds_id = %s\nvalue= %d\n", ds_id, iValue); */
+                        /* UnpackSavedataInt(jsonorbin, pkg, &ds_id, &iValue); */
+                        /* printf("ds_id = %s\nvalue= %d\n", ds_id, iValue); */
 
-				UnpackSavedataDouble(jsonorbin, pkg, &ds_id, &dValue);
-				printf("ds_id = %s\nvalue = %f\n", ds_id, dValue);
+                        UnpackSavedataDouble(jsonorbin, pkg, &ds_id, &dValue);
+                        printf("ds_id = %s\nvalue = %f\n", ds_id, dValue);
 
-				/* UnpackSavedataString(jsonorbin, pkg, &ds_id, &cValue); */
-				/* printf("ds_id = %s\nvalue = %s\n", ds_id, cValue); */
-				/* free(cValue); */
+                        /* UnpackSavedataString(jsonorbin, pkg, &ds_id, &cValue); */
+                        /* printf("ds_id = %s\nvalue = %s\n", ds_id, cValue); */
+                        /* free(cValue); */
 
-				free(ds_id);
+                        free(ds_id);
 				
-                        }
-                        else if (jsonorbin == kTypeBin)
-                        {/* ½âÎöEDP°ü - binÊı¾İ´æ´¢ */
-                            UnpackSavedataBin(pkg, &desc_json, (uint8**)&save_bin, &save_binlen);
-                            desc_json_str=cJSON_Print(desc_json);
-                            printf("recv save data bin, src_devid: %s, desc json: %s, bin: %s, binlen: %d\n", 
-                                    src_devid, desc_json_str, save_bin, save_binlen);
-                            free(desc_json_str);
-                            cJSON_Delete(desc_json);
-                            free(save_bin);
-                        }
-			else if (jsonorbin == kTypeString){
-			    UnpackSavedataSimpleString(pkg, &simple_str);
+                    }
+                    else if (jsonorbin == kTypeBin)
+                    {/* è§£æEDPåŒ… - binæ•°æ®å­˜å‚¨ */
+                        UnpackSavedataBin(pkg, &desc_json, (uint8**)&save_bin, &save_binlen);
+                        desc_json_str=cJSON_Print(desc_json);
+                        printf("recv save data bin, src_devid: %s, desc json: %s, bin: %s, binlen: %d\n",
+                               src_devid, desc_json_str, save_bin, save_binlen);
+                        free(desc_json_str);
+                        cJSON_Delete(desc_json);
+                        free(save_bin);
+                    }
+                    else if (jsonorbin == kTypeString ){
+                        UnpackSavedataSimpleString(pkg, &simple_str);
 			    
-			    printf("%s\n", simple_str);
-			    free(simple_str);
-			}
-                        free(src_devid);
-                    }else{
-			printf("error\n");
-		    }
-                    break;
-	    case SAVEACK:
-		json_ack = NULL;
-		UnpackSavedataAck(pkg, &json_ack);
-		printf("save json ack = %s\n", json_ack);
-		free(json_ack);
-		break;
-	    case CMDREQ:
-		if (UnpackCmdReq(pkg, &cmdid, &cmdid_len, 
-				 &cmd_req, &cmd_req_len) == 0){
-		    /* 
-		     * ÓÃ»§°´ÕÕ×Ô¼ºµÄĞèÇó´¦Àí²¢·µ»Ø£¬ÏìÓ¦ÏûÏ¢Ìå¿ÉÒÔÎª¿Õ£¬´Ë´¦¼ÙÉè·µ»Ø2¸ö×Ö·û"ok"¡£
-		     * ´¦ÀíÍêºóĞèÒªÊÍ·Å
-		     */
-		    cmd_resp_len = strlen(cmd_resp);
-		    send_pkg = PacketCmdResp(cmdid, cmdid_len,
-					     cmd_resp, cmd_resp_len);
+                        printf("%s\n", simple_str);
+                        free(simple_str);
+                    }else if (jsonorbin == kTypeStringWithTime){
+						UnpackSavedataSimpleStringWithTime(pkg, &simple_str, &stTime);
+			    
+                        printf("time:%u-%02d-%02d %02d-%02d-%02d\nstr val:%s\n", 
+							stTime.year, stTime.month, stTime.day, stTime.hour, stTime.minute, stTime.second, simple_str);
+                        free(simple_str);
+					}else if (jsonorbin == kTypeFloatWithTime){
+                        if(UnpackSavedataFloatWithTime(pkg, &float_data, &count, &stTime)){
+                            printf("UnpackSavedataFloatWithTime failed!\n");
+                        }
+
+                        printf("read time:%u-%02d-%02d %02d-%02d-%02d\n", 
+                            stTime.year, stTime.month, stTime.day, stTime.hour, stTime.minute, stTime.second);
+                        printf("read float data count:%d, ptr:[%p]\n", count, float_data);
+                        
+                        for(i = 0; i < count; ++i){
+                            printf("ds_id=%u,value=%f\n", float_data[i].ds_id, float_data[i].f_data);
+                        }
+
+                        free(float_data);
+                        float_data = NULL;
+                    }
+                    free(src_devid);
+                }else{
+                    printf("error\n");
+                }
+                break;
+            case SAVEACK:
+                UnpackSavedataAck(pkg, &msg_id, &save_date_ret);
+                printf("save ack, msg_id = %d, ret = %d\n", msg_id, save_date_ret);
+                break;
+            case CMDREQ:
+                if (UnpackCmdReq(pkg, &cmdid, &cmdid_len,
+                                 &cmd_req, &cmd_req_len) == 0){
+                    /*
+                     * ç”¨æˆ·æŒ‰ç…§è‡ªå·±çš„éœ€æ±‚å¤„ç†å¹¶è¿”å›ï¼Œå“åº”æ¶ˆæ¯ä½“å¯ä»¥ä¸ºç©ºï¼Œæ­¤å¤„å‡è®¾è¿”å›2ä¸ªå­—ç¬¦"ok"ã€‚
+                     * å¤„ç†å®Œåéœ€è¦é‡Šæ”¾
+                     */
+                    cmd_resp_len = strlen(cmd_resp);
+                    send_pkg = PacketCmdResp(cmdid, cmdid_len,
+                                             cmd_resp, cmd_resp_len);
 #ifdef _ENCRYPT
-		    if (g_is_encrypt){
-			SymmEncrypt(send_pkg);
-		    }
+                    if (g_is_encrypt){
+                        SymmEncrypt(send_pkg);
+                    }
 #endif
-		    DoSend(sockfd, (const char*)send_pkg->_data, send_pkg->_write_pos);
-		    DeleteBuffer(&send_pkg);
+                    DoSend(sockfd, (const char*)send_pkg->_data, send_pkg->_write_pos);
+                    DeleteBuffer(&send_pkg);
 		    
-		    free(cmdid);
-		    free(cmd_req);
-		}
-		break;
-                case PINGRESP:
-                    /* ½âÎöEDP°ü - ĞÄÌøÏìÓ¦ */
-                    UnpackPingResp(pkg); 
-                    printf("recv ping resp\n");
-                    break;
-                default:
-                    /* Î´ÖªÏûÏ¢ÀàĞÍ */
-                    error = 1;
-                    printf("recv failed...\n");
-                    break;
+                    free(cmdid);
+                    free(cmd_req);
+                }
+                break;
+            case PINGRESP:
+                /* è§£æEDPåŒ… - å¿ƒè·³å“åº” */
+                UnpackPingResp(pkg);
+                printf("recv ping resp\n");
+                break;
+            default:
+                /* æœªçŸ¥æ¶ˆæ¯ç±»å‹ */
+                error = 1;
+                printf("recv failed...\n");
+                break;
             }
             DeleteBuffer(&pkg);
         }
@@ -368,6 +394,7 @@ void usage(char* name){
     printf("-a Assign the API key of the source\n");
     printf("-l Assign the name of the datastream for test 'save json data'\n" );
     printf("-v Assign the value of the datastream for test 'save json data'\n");
+	printf("-t Assign the time of the datastream for test 'save string data'\n");
     printf("-E Encrypt\n");
     exit(0);
 }
@@ -381,7 +408,7 @@ int main(int argc, char *argv[])
     char c;
     char push_data[] = {'a','b','c'};
 	char text1[]="{\"name\": \"Jack\"}";
-	 /* cJSONÖĞÎÄÖ»Ö§³Öunicode±àÂë   */	
+    /* cJSONä¸­æ–‡åªæ”¯æŒunicodeç¼–ç    */
 	char text2[]="{\"ds_id\": \"temperature\"}";	
     cJSON *save_json, *desc_json;
     char save_bin[] = {'c', 'b', 'a'};
@@ -393,77 +420,92 @@ int main(int argc, char *argv[])
     char* src_api_key = NULL;
     char* ds_for_send = NULL;
     double value_for_send = 0.0;
+	DataTime save_time = {0};
     char send_str[] = ",;temperature,2015-03-22 22:31:12,22.5;humidity,35%;pm2.5,89;1001";
+    FloatDPS send_float[] = {{1,0.5},{2,0.8},{3,-0.5}};
     SaveDataType data_type;
     /* 
-     * ËµÃ÷: ÕâÀïÖ»ÊÇÎªÁË²âÊÔEdpKit¶øĞ´µÄÀı×Ó, ¿Í»§³ÌĞòÓ¦¸Ã¸ù¾İ×Ô¼º³ÌĞòµÄĞèÇóĞ´´úÂë
-     * ¸ù¾İ±ê×¼ÊäÈë ×ö²»Í¬µÄ´¦Àí 
-     * 0 ·¢ËÍ ĞÄÌøÇëÇóEDP°ü
-     * 1 ·¢ËÍ ×ª·¢Êı¾İÇëÇóEDP°ü
-     * 2 ·¢ËÍ ´æ´¢jsonÊı¾İEDP°ü
-     * 3 ·¢ËÍ ´æ´¢binÊı¾İEDP°ü
+     * è¯´æ˜: è¿™é‡Œåªæ˜¯ä¸ºäº†æµ‹è¯•EdpKitè€Œå†™çš„ä¾‹å­, å®¢æˆ·ç¨‹åºåº”è¯¥æ ¹æ®è‡ªå·±ç¨‹åºçš„éœ€æ±‚å†™ä»£ç 
+     * æ ¹æ®æ ‡å‡†è¾“å…¥ åšä¸åŒçš„å¤„ç† 
+     * 0 å‘é€ å¿ƒè·³è¯·æ±‚EDPåŒ…
+     * 1 å‘é€ è½¬å‘æ•°æ®è¯·æ±‚EDPåŒ…
+     * 2 å‘é€ å­˜å‚¨jsonæ•°æ®EDPåŒ…
+     * 3 å‘é€ å­˜å‚¨binæ•°æ®EDPåŒ…
+     * 4 å‘é€ å­˜å‚¨å¸¦æ—¶é—´Jsonæ•°æ®EDPåŒ…
      */
-    char msg[][50] = {"send ping to server",
-		      "send pushdata to server",
-		      "send savedata full json to server",
-		      "send savedata bin to server",
-		      "send savedata simple json without time to server",
-		      "send savedata simple json with time to server",
-		      "send string split by simicolon"};
+    char msg[][50] = {"send ping to server",    
+                      "send pushdata to server",
+                      "send savedata full json to server",
+                      "send savedata bin to server",
+                      "send savedata simple json without time to server",
+                      "send savedata simple json with time to server",
+                      "send string split by simicolon",
+                      "send string with time to server",
+                      "send float with time to server"};
 	
-    while ((opt = getopt(argc, argv, "hi:p:s:d:a:l:v:E")) != -1) {
-	switch (opt){
-	case 'i':
-	    ip = optarg;
-	    break;
+    while ((opt = getopt(argc, argv, "hi:p:s:d:a:l:v:t:E")) != -1) {
+        switch (opt){
+        case 'i':
+            ip = optarg;
+            break;
 
-	case 'p':
-	    port = optarg;
-	    break;
+        case 'p':
+            port = optarg;
+            break;
 
-	case 's':
-	    src_dev = optarg;
-	    break;
+        case 's':
+            src_dev = optarg;
+            break;
 
-	case 'd':
-	    dst_dev = optarg;
-	    break;
+        case 'd':
+            dst_dev = optarg;
+            break;
 	    
-	case 'a':
-	    src_api_key = optarg;
-	    break;
+        case 'a':
+            src_api_key = optarg;
+            break;
 
-	case 'l':
-	    ds_for_send = optarg;
-	    break;
+        case 'l':
+            ds_for_send = optarg;
+            break;
 
-	case 'v':
-	    value_for_send = atof(optarg);
-	    break;
+        case 'v':
+            value_for_send = atof(optarg);
+            break;
 
-	case 'E':
+		case 't':
+			/*20160405144601*/
+			if(strlen(optarg) != 14){
+				break;
+			}
+			sscanf(optarg, "%4d%2d%2d%2d%2d%2d", 
+				&save_time.year, &save_time.month, &save_time.day, 
+				&save_time.hour, &save_time.minute, &save_time.second);
+			break;
+
+        case 'E':
 #ifndef _ENCRYPT
-	    printf("Sorry the option 'E' is not supported right now\n");
-	    printf("Please check your compile flags, \n");
-	    printf("uncomment this line 'CFLAGS+=-D_ENCRYPT -lcrypto'\n");
-	    printf("and this line 'CLIENT_OBJ += Openssl.o'\n");
-	    printf("and try it again\n");
-	    exit(0);
+            printf("Sorry the option 'E' is not supported right now\n");
+            printf("Please check your compile flags, \n");
+            printf("uncomment this line 'CFLAGS+=-D_ENCRYPT -lcrypto'\n");
+            printf("and this line 'CLIENT_OBJ += Openssl.o'\n");
+            printf("and try it again\n");
+            exit(0);
 #endif
-	    g_is_encrypt = 1;
-	    break;
+            g_is_encrypt = 1;
+            break;
 
-	case 'h': 
-	default:
-	    usage(argv[0]);
-	    return 0;
-	}
+        case 'h':
+        default:
+            usage(argv[0]);
+            return 0;
+        }
     }
     
     if (!ip || !port || !src_dev || !dst_dev 
-	|| !src_api_key || !ds_for_send){
-	usage(argv[0]);
-	return 0;
+        || !src_api_key || !ds_for_send){
+        usage(argv[0]);
+        return 0;
     }
 
     /* create a socket and connect to server */
@@ -475,12 +517,12 @@ int main(int argc, char *argv[])
     ret=pthread_create(&id_1,NULL,(void *(*) (void *))recv_thread_func, &sockfd);  
 #ifdef _ENCRYPT
     if (g_is_encrypt){
-	send_pkg = PacketEncryptReq(kTypeAes);
-	/* ÏòÉè±¸ÔÆ·¢ËÍ¼ÓÃÜÇëÇó */
-	printf("send encrypt to server, bytes: %d\n", send_pkg->_write_pos);
-	ret=DoSend(sockfd, (const char*)send_pkg->_data, send_pkg->_write_pos);
-	DeleteBuffer(&send_pkg);
-	sleep(1);
+        send_pkg = PacketEncryptReq(kTypeAes);
+        /* å‘è®¾å¤‡äº‘å‘é€åŠ å¯†è¯·æ±‚ */
+        printf("send encrypt to server, bytes: %d\n", send_pkg->_write_pos);
+        ret=DoSend(sockfd, (const char*)send_pkg->_data, send_pkg->_write_pos);
+        DeleteBuffer(&send_pkg);
+        sleep(1);
     }
 #endif
 
@@ -489,13 +531,13 @@ int main(int argc, char *argv[])
     send_pkg = PacketConnect1(src_dev, src_api_key);
 #ifdef _ENCRYPT
     if (g_is_encrypt){
-	SymmEncrypt(send_pkg);
+        SymmEncrypt(send_pkg);
     }
 #endif
     /* send_pkg = PacketConnect2("433223", "{ \"SYS\" : \"0DEiuApATHgLurKNEl6vY4bLwbQ=\" }");*/
     /* send_pkg = PacketConnect2("433223", "{ \"13982031959\" : \"888888\" }");*/
 
-    /* ÏòÉè±¸ÔÆ·¢ËÍÁ¬½ÓÇëÇó */
+    /* å‘è®¾å¤‡äº‘å‘é€è¿æ¥è¯·æ±‚ */
     printf("send connect to server, bytes: %d\n", send_pkg->_write_pos);
     ret=DoSend(sockfd, (const char*)send_pkg->_data, send_pkg->_write_pos);
     DeleteBuffer(&send_pkg);
@@ -505,55 +547,71 @@ int main(int argc, char *argv[])
     printf("[4] send save json simple format without time\n");
     printf("[5] send save json simple format with time\n");
     printf("[6] send simple format (string) \n");
+	printf("[7] send simple format (string) with datetime \n");
+    printf("[8] send float data with datetime \n");
 	      
     while (1)
     {
         c = getchar();
-	switch (c){
-	case '0':
-	    send_pkg = PacketPing(); 
-	    break;
+        switch (c){
+        case '0':
+            send_pkg = PacketPing();
+            break;
 
-	case '1':
-	    send_pkg = PacketPushdata(dst_dev, push_data, sizeof(push_data)); 
-	    break;
+        case '1':
+            send_pkg = PacketPushdata(dst_dev, push_data, sizeof(push_data));
+            break;
 
-	case '2':
-	case '4':
-	case '5':
-	    if (c == '2') data_type = kTypeFullJson;
-	    if (c == '4') data_type = kTypeSimpleJsonWithoutTime;
-	    if (c == '5') data_type = kTypeSimpleJsonWithTime;
+        case '2':
+        case '4':
+        case '5':
+            if (c == '2') data_type = kTypeFullJson;
+            if (c == '4') data_type = kTypeSimpleJsonWithoutTime;
+            if (c == '5') data_type = kTypeSimpleJsonWithTime;
 
-	    /* send_pkg = PacketSavedataInt(data_type, dst_dev, ds_for_send, 1234, 0, NULL);*/
-	    send_pkg = PacketSavedataDouble(data_type, dst_dev, ds_for_send, value_for_send, 0, NULL);
-	    /* send_pkg = PacketSavedataString(data_type, dst_dev, ds_for_send, "test12345678", 0, NULL); */
-	    break;
+            send_pkg = PacketSavedataInt(data_type, dst_dev, ds_for_send, 1234, 0, 0);
+            /* send_pkg = PacketSavedataDouble(data_type, dst_dev, ds_for_send, value_for_send, 0, 0); */
+            /* send_pkg = PacketSavedataString(data_type, dst_dev, ds_for_send, "test12345678", 0, 1); */
+            break;
 	    
-	case '3':
-	    desc_json=cJSON_Parse(text2);
-            send_pkg = PacketSavedataBin(dst_dev, desc_json, (const uint8*)save_bin, sizeof(save_bin)); 
-	    break;
+        case '3':
+            desc_json=cJSON_Parse(text2);
+            send_pkg = PacketSavedataBin(dst_dev, desc_json, (const uint8*)save_bin, sizeof(save_bin), 0);
+            break;
 
-	case '6':
-	    send_pkg = PacketSavedataSimpleString(dst_dev, send_str);
-	    break;
+        case '6':
+            send_pkg = PacketSavedataSimpleString(dst_dev, send_str, 0);
+            break;
 
-	default:
-	    getchar();	/* ¶ÁÈ¡»Ø³µ·û£¬¶ªÆú */
-	    printf("input error, please try again\n");
-	    continue;
-	}
+		case '7':
+			if (save_time.year > 0)
+				send_pkg = PacketSavedataSimpleStringWithTime(dst_dev, send_str, &save_time, 0);
+			else
+				send_pkg = PacketSavedataSimpleStringWithTime(dst_dev, send_str, NULL, 0);
+			break;
+
+        case '8':
+            if (save_time.year > 0)
+			    send_pkg = PackSavedataFloatWithTime(dst_dev, send_float, 3, &save_time, 0);
+		    else
+			    send_pkg = PackSavedataFloatWithTime(dst_dev, send_float, 3, NULL, 0);
+            break;
+
+        default:
+            getchar();	/* è¯»å–å›è½¦ç¬¦ï¼Œä¸¢å¼ƒ */
+            printf("input error, please try again\n");
+            continue;
+        }
 #ifdef _ENCRYPT
 	    if (g_is_encrypt){
-		SymmEncrypt(send_pkg);
+            SymmEncrypt(send_pkg);
 	    }
 #endif
-            printf("%s, bytes: %d\n", msg[c-'0'], send_pkg->_write_pos);
-            DoSend(sockfd, (const char*)send_pkg->_data, send_pkg->_write_pos);
-            DeleteBuffer(&send_pkg);
+        printf("%s, bytes: %d\n", msg[c-'0'], send_pkg->_write_pos);
+        DoSend(sockfd, (const char*)send_pkg->_data, send_pkg->_write_pos);
+        DeleteBuffer(&send_pkg);
 
-	    getchar(); /* ¶ÁÈ¡»Ø³µ·û£¬¶ªÆú */
+	    getchar(); /* è¯»å–å›è½¦ç¬¦ï¼Œä¸¢å¼ƒ */
     }
     /* close socket */
     Close(sockfd);

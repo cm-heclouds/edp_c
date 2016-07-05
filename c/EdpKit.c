@@ -1,278 +1,279 @@
-#include <stdlib.h>
+﻿#include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
 #include <assert.h>
 #include <time.h>
 #include "EdpKit.h"
 
-#define MKFUN_PACKET_SAVE_DATA(TYPE, NAME)				\
+#define MKFUN_PACKET_SAVE_DATA(TYPE, NAME)                      \
     EdpPacket* PacketSavedata##NAME(SaveDataType type,			\
-				    const char* dst_devid,		\
-				    const char* ds_id,			\
-				    TYPE value,				\
-				    time_t at,				\
-				    const char* token){			\
-	EdpPacket* pkg = NULL;						\
-	switch (type){							\
-	case kTypeFullJson:						\
-	    pkg = PacketSavedataType1##NAME(dst_devid, ds_id,		\
-					    value, at, token);		\
-	    break;							\
-	case kTypeSimpleJsonWithoutTime:				\
-	    pkg = PacketSavedataType2##NAME(dst_devid, ds_id,		\
-					    value, at, token);		\
-	    break;							\
-	case kTypeSimpleJsonWithTime:					\
-	    pkg = PacketSavedataType3##NAME(dst_devid, ds_id,		\
-					    value, at, token);		\
-	    break;							\
-	default:							\
-	    break;							\
-	}								\
-									\
-    return pkg;								\
-}
+                                    const char* dst_devid,		\
+                                    const char* ds_id,			\
+                                    TYPE value,                 \
+                                    time_t at,                  \
+                                    uint16 msg_id){     \
+        EdpPacket* pkg = NULL;                                  \
+        switch (type){                                          \
+        case kTypeFullJson:                                     \
+            pkg = PacketSavedataType1##NAME(dst_devid, ds_id,   \
+                                            value, at, msg_id); \
+                break;                                          \
+        case kTypeSimpleJsonWithoutTime:                        \
+            pkg = PacketSavedataType2##NAME(dst_devid, ds_id,   \
+                                            value, at, msg_id); \
+                break;                                          \
+        case kTypeSimpleJsonWithTime:                           \
+            pkg = PacketSavedataType3##NAME(dst_devid, ds_id,   \
+                                            value, at, msg_id); \
+                break;                                          \
+        default:                                                \
+            break;                                              \
+        }                                                       \
+                                                                \
+        return pkg;                                             \
+    }
 
-#define MKFUN_PACKET_SAVE_DATA_TYPE1(TYPE, NAME, MED)			\
+#define MKFUN_PACKET_SAVE_DATA_TYPE1(TYPE, NAME, MED)                   \
     static EdpPacket* PacketSavedataType1##NAME(const char* dst_devid,	\
-						const char* ds_id,	\
-						TYPE value,		\
-						time_t at,		\
-						const char* token){	\
-	cJSON* json_obj = NULL;						\
-	cJSON* ds_array = NULL;						\
-	cJSON* json_obj_ds = NULL;					\
-	cJSON* dp_array = NULL;						\
-	cJSON* dp_item = NULL;						\
-	char ss[100] = {0};						\
-	EdpPacket* pkg = NULL;						\
-									\
-	json_obj = cJSON_CreateObject();				\
-									\
-	if(token) {							\
-	    cJSON_AddStringToObject(json_obj, "token", token);		\
-	}								\
-									\
-	ds_array = cJSON_CreateArray();					\
-	json_obj_ds = cJSON_CreateObject();				\
-									\
-	cJSON_AddStringToObject(json_obj_ds, "id", ds_id);		\
-									\
-	dp_array = cJSON_CreateArray();					\
-	dp_item = cJSON_CreateObject();					\
-									\
-	FormatAt(ss, 100, at);						\
-	cJSON_AddStringToObject(dp_item, "at", ss);			\
-	cJSON_Add##MED##ToObject(dp_item, "value", value);		\
-	cJSON_AddItemToArray(dp_array, dp_item);			\
-									\
-	cJSON_AddItemToObject(json_obj_ds, "datapoints", dp_array);	\
-	cJSON_AddItemToArray(ds_array, json_obj_ds);			\
-	cJSON_AddItemToObject(json_obj, "datastreams", ds_array);	\
-									\
-	pkg = PacketSavedataJson(dst_devid, json_obj,			\
-					    kTypeFullJson);		\
-	cJSON_Delete(json_obj);						\
-									\
-	return pkg;							\
-}
+                                                const char* ds_id,      \
+                                                TYPE value,             \
+                                                time_t at,              \
+                                                uint16 msg_id){ \
+        cJSON* json_obj = NULL;                                         \
+        cJSON* ds_array = NULL;                                         \
+        cJSON* json_obj_ds = NULL;                                      \
+        cJSON* dp_array = NULL;                                         \
+        cJSON* dp_item = NULL;                                          \
+        char ss[100] = {0};                                             \
+        EdpPacket* pkg = NULL;                                          \
+                                                                        \
+        json_obj = cJSON_CreateObject();                                \
+                                                                        \
+        ds_array = cJSON_CreateArray();                                 \
+        json_obj_ds = cJSON_CreateObject();                             \
+                                                                        \
+        cJSON_AddStringToObject(json_obj_ds, "id", ds_id);              \
+                                                                        \
+        dp_array = cJSON_CreateArray();                                 \
+        dp_item = cJSON_CreateObject();                                 \
+                                                                        \
+        FormatAt(ss, 100, at);                                          \
+        cJSON_AddStringToObject(dp_item, "at", ss);                     \
+        cJSON_Add##MED##ToObject(dp_item, "value", value);              \
+            cJSON_AddItemToArray(dp_array, dp_item);                    \
+                                                                        \
+            cJSON_AddItemToObject(json_obj_ds, "datapoints", dp_array);	\
+            cJSON_AddItemToArray(ds_array, json_obj_ds);                \
+            cJSON_AddItemToObject(json_obj, "datastreams", ds_array);	\
+                                                                        \
+            pkg = PacketSavedataJson(dst_devid, json_obj,               \
+                                     kTypeFullJson, msg_id);            \
+            cJSON_Delete(json_obj);                                     \
+                                                                        \
+            return pkg;                                                 \
+    }
 
-#define MKFUN_PACKET_SAVE_DATA_TYPE2(TYPE, NAME, MED)			\
+#define MKFUN_PACKET_SAVE_DATA_TYPE2(TYPE, NAME, MED)                   \
     static EdpPacket* PacketSavedataType2##NAME(const char* dst_devid,	\
-						const char* ds_id,	\
-						TYPE value,		\
-						time_t at,		\
-						const char* token)	\
-    {									\
-	cJSON* json_obj = NULL;						\
-	EdpPacket* pkg = NULL;						\
-									\
-	json_obj = cJSON_CreateObject();				\
-	cJSON_Add##MED##ToObject(json_obj, ds_id, value);		\
-									\
-	pkg = PacketSavedataJson(dst_devid, json_obj,			\
-					    kTypeSimpleJsonWithoutTime); \
-	cJSON_Delete(json_obj);						\
-									\
-	return pkg;							\
-}
+                                                const char* ds_id,      \
+                                                TYPE value,             \
+                                                time_t at,              \
+                                                uint16 msg_id)  \
+    {                                                                   \
+        cJSON* json_obj = NULL;                                         \
+        EdpPacket* pkg = NULL;                                          \
+                                                                        \
+        json_obj = cJSON_CreateObject();                                \
+        cJSON_Add##MED##ToObject(json_obj, ds_id, value);               \
+                                                                        \
+            pkg = PacketSavedataJson(dst_devid, json_obj,               \
+                                     kTypeSimpleJsonWithoutTime, msg_id); \
+            cJSON_Delete(json_obj);                                     \
+                                                                        \
+            return pkg;                                                 \
+    }
 
 
-#define MKFUN_PACKET_SAVE_DATA_TYPE3(TYPE, NAME, MED)			\
+#define MKFUN_PACKET_SAVE_DATA_TYPE3(TYPE, NAME, MED)                   \
     static EdpPacket* PacketSavedataType3##NAME(const char* dst_devid,	\
-						const char* ds_id,	\
-						TYPE value,		\
-						time_t at,		\
-						const char* token){	\
-	cJSON* json_obj = NULL;						\
-	cJSON* json_obj_ds = NULL;					\
-	char ss[100] = {0};						\
-	EdpPacket* pkg = NULL;						\
-									\
-	json_obj = cJSON_CreateObject();				\
-	FormatAt(ss, 100, at);						\
-	json_obj_ds = cJSON_CreateObject();				\
-	cJSON_Add##MED##ToObject(json_obj_ds, ss, value);		\
-	cJSON_AddItemToObject(json_obj, ds_id, json_obj_ds);		\
-									\
-	pkg = PacketSavedataJson(dst_devid, json_obj,			\
-					    kTypeSimpleJsonWithTime);	\
-	cJSON_Delete(json_obj);						\
-									\
-	return pkg;							\
-}
+                                                const char* ds_id,      \
+                                                TYPE value,             \
+                                                time_t at,              \
+                                                uint16 msg_id){ \
+        cJSON* json_obj = NULL;                                         \
+        cJSON* json_obj_ds = NULL;                                      \
+        char ss[100] = {0};                                             \
+        EdpPacket* pkg = NULL;                                          \
+                                                                        \
+        json_obj = cJSON_CreateObject();                                \
+        FormatAt(ss, 100, at);                                          \
+        json_obj_ds = cJSON_CreateObject();                             \
+        cJSON_Add##MED##ToObject(json_obj_ds, ss, value);               \
+            cJSON_AddItemToObject(json_obj, ds_id, json_obj_ds);		\
+                                                                        \
+            pkg = PacketSavedataJson(dst_devid, json_obj,               \
+                                     kTypeSimpleJsonWithTime, msg_id);  \
+            cJSON_Delete(json_obj);                                     \
+                                                                        \
+            return pkg;                                                 \
+    }
 
-#define MKFUN_UNPACK_SAVE_DATA(TYPE, NAME)				\
-    int32 UnpackSavedata##NAME(SaveDataType type,			\
-				 EdpPacket* pkg,			\
-				 char** ds_id,				\
-				 TYPE* value)				\
-    {									\
-    int ret = -1;							\
-    switch (type){							\
-    case kTypeFullJson:							\
-	ret = UnpackSavedataType1##NAME(pkg, ds_id, value);		\
-	break;								\
-    case kTypeSimpleJsonWithoutTime:					\
-	ret = UnpackSavedataType2##NAME(pkg, ds_id, value);		\
-	break;								\
-    case kTypeSimpleJsonWithTime:					\
-	ret = UnpackSavedataType3##NAME(pkg, ds_id, value);		\
-	break;								\
-    default:								\
-	break;								\
-    }									\
-									\
-    return ret;								\
-}
+#define MKFUN_UNPACK_SAVE_DATA(TYPE, NAME)                      \
+    int32 UnpackSavedata##NAME(SaveDataType type,               \
+                               EdpPacket* pkg,                  \
+                               char** ds_id,                    \
+                               TYPE* value)                     \
+    {                                                           \
+        int ret = -1;                                           \
+        switch (type){                                          \
+        case kTypeFullJson:                                     \
+            ret = UnpackSavedataType1##NAME(pkg, ds_id, value); \
+                break;                                          \
+        case kTypeSimpleJsonWithoutTime:                        \
+            ret = UnpackSavedataType2##NAME(pkg, ds_id, value); \
+                break;                                          \
+        case kTypeSimpleJsonWithTime:                           \
+            ret = UnpackSavedataType3##NAME(pkg, ds_id, value); \
+                break;                                          \
+        default:                                                \
+            break;                                              \
+        }                                                       \
+                                                                \
+        return ret;                                             \
+    }
 
-#define MKFUN_UNPACK_SAVE_DATA_TYPE1(TYPE, NAME, MED)			\
-    static int32 UnpackSavedataType1##NAME(EdpPacket* pkg,		\
-					     char** ds_id,		\
-					     TYPE* value)		\
-    {									\
-    cJSON* json_obj = NULL;						\
-    cJSON* ds_array = NULL;						\
-    cJSON* ds_item = NULL;						\
-    char* id = NULL;							\
-    cJSON* dp_array = NULL;						\
-    cJSON* dp_item = NULL;						\
-    char* valuestring = NULL;						\
-									\
-    if(0 != UnpackSavedataJson(pkg, &json_obj))				\
-	return ERR_UNPACK_SAVED_JSON;					\
-									\
-    ds_array = cJSON_GetObjectItem(json_obj, "datastreams");		\
-    if((0 == ds_array) || (1 != cJSON_GetArraySize(ds_array)))		\
-	return ERR_UNPACK_SAVED_JSON;					\
-									\
-    ds_item = cJSON_GetArrayItem(ds_array, 0);				\
-    if(0 == ds_item)							\
-	return ERR_UNPACK_SAVED_JSON;					\
-									\
-    id = cJSON_GetObjectItem(ds_item, "id")->valuestring;		\
-    *ds_id = (char*)malloc(strlen(id)+1);				\
-    memcpy((char*)(*ds_id), id, strlen(id)+1);				\
-    									\
-    dp_array = cJSON_GetObjectItem(ds_item, "datapoints");		\
-    if((0 == dp_array) || (1 != cJSON_GetArraySize(dp_array)))		\
-	return ERR_UNPACK_SAVED_JSON;					\
-									\
-    dp_item = cJSON_GetArrayItem(dp_array, 0);				\
+#define MKFUN_UNPACK_SAVE_DATA_TYPE1(TYPE, NAME, MED)               \
+    static int32 UnpackSavedataType1##NAME(EdpPacket* pkg,          \
+                                           char** ds_id,            \
+                                           TYPE* value)             \
+    {                                                               \
+        cJSON* json_obj = NULL;                                     \
+        cJSON* ds_array = NULL;                                     \
+        cJSON* ds_item = NULL;                                      \
+        char* id = NULL;                                            \
+        cJSON* dp_array = NULL;                                     \
+        cJSON* dp_item = NULL;                                      \
+        char* valuestring = NULL;                                   \
+                                                                    \
+        if(0 != UnpackSavedataJson(pkg, &json_obj))                 \
+            return ERR_UNPACK_SAVED_JSON;                           \
+                                                                    \
+        ds_array = cJSON_GetObjectItem(json_obj, "datastreams");    \
+        if((0 == ds_array) || (1 != cJSON_GetArraySize(ds_array)))  \
+            return ERR_UNPACK_SAVED_JSON;                           \
+                                                                    \
+        ds_item = cJSON_GetArrayItem(ds_array, 0);                  \
+        if(0 == ds_item)                                            \
+            return ERR_UNPACK_SAVED_JSON;                           \
+                                                                    \
+        id = cJSON_GetObjectItem(ds_item, "id")->valuestring;		\
+        *ds_id = (char*)malloc(strlen(id)+1);                       \
+        memcpy((char*)(*ds_id), id, strlen(id)+1);                  \
+                                                                    \
+        dp_array = cJSON_GetObjectItem(ds_item, "datapoints");		\
+        if((0 == dp_array) || (1 != cJSON_GetArraySize(dp_array)))  \
+            return ERR_UNPACK_SAVED_JSON;                           \
+                                                                    \
+        dp_item = cJSON_GetArrayItem(dp_array, 0);                  \
 
 
-#define UNPACK_SAVE_DATA_TYPE1_END_STRING				\
+#define UNPACK_SAVE_DATA_TYPE1_END_STRING                               \
     valuestring = cJSON_GetObjectItem(dp_item, "value")->valuestring;	\
-    *value = (char*)malloc(strlen(valuestring)+1);			\
-    memcpy((char*)(*value), valuestring, strlen(valuestring)+1);	\
-    cJSON_Delete(json_obj);						\
-    return 0;								\
-}
+    *value = (char*)malloc(strlen(valuestring)+1);                      \
+    memcpy((char*)(*value), valuestring, strlen(valuestring)+1);        \
+    cJSON_Delete(json_obj);                                             \
+    return 0;                                                           \
+    }
 
-#define UNPACK_SAVE_DATA_TYPE1_END_NUMBER(TYPE)			\
+#define UNPACK_SAVE_DATA_TYPE1_END_NUMBER(TYPE)                     \
     *value = cJSON_GetObjectItem(dp_item, "value")->value##TYPE;	\
-    cJSON_Delete(json_obj);						\
-    return 0;								\
-}
+    cJSON_Delete(json_obj);                                         \
+    return 0;                                                       \
+    }
 
-#define MKFUN_UNPACK_SAVE_DATA_TYPE2(TYPE, NAME, MED)			\
-    static int32 UnpackSavedataType2##NAME(EdpPacket* pkg,		\
-						  char** ds_id,		\
-						  TYPE* value)		\
-    {									\
-        cJSON* json_obj = NULL;						\
-	cJSON* json_child = NULL;					\
-	size_t len = 0;							\
-	char* valuestring = NULL;					\
-									\
-	if(0 != UnpackSavedataJson(pkg, &json_obj))			\
-	    return ERR_UNPACK_SAVED_JSON;				\
-	if (!json_obj->child){						\
-	    cJSON_Delete(json_obj);					\
-	    return ERR_UNPACK_SAVED_JSON;				\
-	}								\
-	json_child = json_obj->child;					\
-	len = strlen(json_child->string) + 1;				\
-	*ds_id = (char*)malloc(len);					\
+#define MKFUN_UNPACK_SAVE_DATA_TYPE2(TYPE, NAME, MED)       \
+    static int32 UnpackSavedataType2##NAME(EdpPacket* pkg,  \
+                                           char** ds_id,    \
+                                           TYPE* value)		\
+    {                                                       \
+    cJSON* json_obj = NULL;                                 \
+    cJSON* json_child = NULL;                               \
+    size_t len = 0;                                         \
+    char* valuestring = NULL;                               \
+                                                            \
+    if(0 != UnpackSavedataJson(pkg, &json_obj))             \
+        return ERR_UNPACK_SAVED_JSON;                       \
+    if (!json_obj->child){                                  \
+        cJSON_Delete(json_obj);                             \
+        return ERR_UNPACK_SAVED_JSON;                       \
+    }                                                       \
+    json_child = json_obj->child;                           \
+    len = strlen(json_child->string) + 1;                   \
+    *ds_id = (char*)malloc(len);                            \
 	memcpy((char*)(*ds_id), json_child->string, len);		\
 
-#define UNPACK_SAVE_DATA_TYPE23_END_NUMBER(TYPE)			\
-    *value = json_child->value##TYPE;					\
-    cJSON_Delete(json_obj);						\
-    return 0;								\
-}
+#define UNPACK_SAVE_DATA_TYPE23_END_NUMBER(TYPE)    \
+    *value = json_child->value##TYPE;               \
+    cJSON_Delete(json_obj);                         \
+           return 0;								\
+           }
 
-#define UNPACK_SAVE_DATA_TYPE23_END_STRING()				\
-    valuestring = json_child->valuestring;				\
-    *value = (char*)malloc(strlen(valuestring)+1);			\
+#define UNPACK_SAVE_DATA_TYPE23_END_STRING()                        \
+    valuestring = json_child->valuestring;                          \
+    *value = (char*)malloc(strlen(valuestring)+1);                  \
     memcpy((char*)(*value), valuestring, strlen(valuestring)+1);	\
-    cJSON_Delete(json_obj);						\
-    return 0;								\
-}
+    cJSON_Delete(json_obj);                                         \
+    return 0;                                                       \
+    }
 
-#define MKFUN_UNPACK_SAVE_DATA_TYPE3(TYPE, NAME, MED)			\
-    static int32 UnpackSavedataType3##NAME(EdpPacket* pkg,		\
-						  char** ds_id,		\
-						  TYPE* value)		\
-{									\
-        cJSON* json_obj = NULL;						\
-	cJSON* json_child = NULL;					\
-	char* valuestring = NULL;					\
-	size_t len = 0;							\
-									\
-	if(0 != UnpackSavedataJson(pkg, &json_obj))			\
-	    return ERR_UNPACK_SAVED_JSON;				\
-									\
-	json_child = json_obj->child;					\
-	if (!json_child || !json_child->string){			\
-	    cJSON_Delete(json_obj);					\
-	    return ERR_UNPACK_SAVED_JSON;				\
-	}								\
-									\
-	len = strlen(json_child->string) + 1;				\
-	*ds_id = (char*)malloc(len);					\
-	memcpy(*ds_id, json_child->string, len);			\
-									\
-	json_child = json_child->child;					\
-	if (!json_child){						\
-	    cJSON_Delete(json_obj);					\
-	    return ERR_UNPACK_SAVED_JSON;				\
-	}								\
+#define MKFUN_UNPACK_SAVE_DATA_TYPE3(TYPE, NAME, MED)                   \
+    static int32 UnpackSavedataType3##NAME(EdpPacket* pkg,              \
+                                           char** ds_id,                \
+                                           TYPE* value)                 \
+    {                                                                   \
+    cJSON* json_obj = NULL;                                             \
+    cJSON* json_child = NULL;                                           \
+    char* valuestring = NULL;                                           \
+    size_t len = 0;                                                     \
+                                                                        \
+    if(0 != UnpackSavedataJson(pkg, &json_obj))                         \
+        return ERR_UNPACK_SAVED_JSON;                                   \
+                                                                        \
+    json_child = json_obj->child;                                       \
+    if (!json_child || !json_child->string){                            \
+                                            cJSON_Delete(json_obj);     \
+                                            return ERR_UNPACK_SAVED_JSON; \
+                                            }                           \
+                                                                        \
+    len = strlen(json_child->string) + 1;                               \
+    *ds_id = (char*)malloc(len);                                        \
+    memcpy(*ds_id, json_child->string, len);                            \
+                                                                        \
+    json_child = json_child->child;                                     \
+    if (!json_child){                                                   \
+                     cJSON_Delete(json_obj);                            \
+                     return ERR_UNPACK_SAVED_JSON;                      \
+                     }                                                  \
 
 static void FormatAt(char* buffer, int len, time_t now)
 {
     struct tm timinfo;
 
     if (now == 0){
-	now = time(0);
+        now = time(0);
     }
 
+	localtime_r(&now, &timinfo);
+    strftime(buffer, len, "%F %T", &timinfo); 
+
+/*
 #if defined(linux) || defined(__linux) || defined(__linux__)
     strftime(buffer, len, "%F %T", localtime_r(&now, &timinfo));
 #elif defined(_WIN32) || defined(__WIN32__) || defined(WIN32)
 	localtime_s(&timinfo, &now);
     strftime(buffer, len, "%F %T", &timinfo); 
 #endif
+*/
 }
 
 /*---------------------------------------------------------------------------*/
@@ -359,6 +360,20 @@ int32 ReadUint32(EdpPacket* pkg, uint32* val)
     *val = tmpval;
     return 0;
 }
+
+int32 ReadFloat(EdpPacket* pkg, float* val)
+{
+    *val = 0;
+    if (pkg->_read_pos + 4 > pkg->_write_pos)
+        return -1;
+
+    /*此处假设机器为小端;
+        若为大端，memcpy后需颠倒float的四个字节顺序*/
+    memcpy(val, pkg->_data + pkg->_read_pos, sizeof(float));
+    pkg->_read_pos += 4;
+    return 0;
+}
+
 int32 ReadStr(EdpPacket* pkg, char** val)
 {
     uint16 len = 0;
@@ -376,6 +391,55 @@ int32 ReadStr(EdpPacket* pkg, char** val)
     pkg->_read_pos += len;
     return 0;
 }
+
+int32 ReadDataTime(EdpPacket* pkg, LPDataTime val){
+	uint8 data_time = 0;
+
+	if (NULL == val){
+		return -1;
+	}
+
+	memset(val, 0, sizeof(DataTime));
+
+	/*read year, year - 2000; valid arrange:[0-~]*/
+	if (ReadByte(pkg, &data_time) || data_time <= 0){
+		return -1;
+	}
+	val->year = 2000 + data_time;
+
+	/*read month valid arrange:[1~12]*/
+	if (ReadByte(pkg, &data_time) || data_time < 1 || data_time > 12){
+		return -1;
+	}
+	val->month = data_time;
+	
+	/*read day valid arrange:[1~31]*/
+	if (ReadByte(pkg, &data_time) || data_time < 1 || data_time > 31){
+		return -1;
+	}
+	val->day = data_time;
+
+	/*read hour valid arrange:[0~23]*/
+	if (ReadByte(pkg, &data_time) || data_time > 23){
+		return -1;
+	}
+	val->hour = data_time;
+
+	/*read minute valid arrange:[0~59]*/
+	if (ReadByte(pkg, &data_time) || data_time > 59){
+		return -1;
+	}
+	val->minute = data_time;
+
+	/*read second valid arrange:[0~59]*/
+	if (ReadByte(pkg, &data_time)  || data_time > 59){
+		return -1;
+	}
+	val->second = data_time;
+
+	return 0;
+}
+
 int32 ReadRemainlen(EdpPacket* pkg, uint32* len_val)
 {
     uint32 multiplier = 1;
@@ -431,6 +495,19 @@ int32 WriteUint32(Buffer* buf, uint32 val)
         || WriteByte(buf, (val >> 8) & 0x00FF) 
         || WriteByte(buf, (val) & 0x00FF);
 }
+
+int32 WriteFloat(Buffer* buf, float val)
+{
+    assert(buf->_read_pos == 0);
+    if (CheckCapacity(buf, 4))
+        return -1;
+
+   /*此处假设机器为小端;
+        若为大端，需先颠倒float的四个字节顺序再writebytes*/
+
+    return WriteBytes(buf, &val, sizeof(float));
+}
+
 int32 WriteStr(Buffer* buf, const char *str)
 {
     uint16 length = 0;
@@ -533,38 +610,41 @@ EdpPacket* PacketPushdata(const char* dst_devid, const char* data, uint32 data_l
     return pkg;
 }
 /* sava_data (C->S) */
-EdpPacket* PacketSavedataJson(const char* dst_devid, cJSON* json_obj, int type)
+EdpPacket* PacketSavedataJson(const char* dst_devid, cJSON* json_obj, int type, uint16 msg_id)
 {
     EdpPacket* pkg = NULL;
     uint32 remainlen = 0;
     char* json_out = NULL;
     uint32 json_len = 0;
+    uint8 flag = 0;
 
     pkg = NewBuffer();
     remainlen;
     json_out = cJSON_Print(json_obj);
     json_len = strlen(json_out);
+    remainlen = 1 + (msg_id ? 2:0) +              /* 固定选项 + 消息标志 */
+        (dst_devid ? (2+strlen(dst_devid)) : 0) + /* 目的设备 */
+        1 + (2+json_len);                         /* 数据类型 + Json串长度 */
 
     /* msg type */
     WriteByte(pkg, SAVEDATA);
+    /* remain len */
+    WriteRemainlen(pkg, remainlen);
+    /* flag */
+    flag |= dst_devid ? 0x80 : 0;
+    flag |= msg_id ? 0x40 : 0;
+    WriteByte(pkg, flag);
+
     if (dst_devid)
-    {
-        /* remain len */
-        remainlen = 1+(2+strlen(dst_devid))+1+(2+json_len);
-        WriteRemainlen(pkg, remainlen);
-        /* translate address flag */
-        WriteByte(pkg, 0x80);
-        /* dst devid */
+    { 
         WriteStr(pkg, dst_devid);
     }
-    else
+
+    if (msg_id)
     {
-        /* remain len */
-        remainlen = 1+1+(2+json_len);
-        WriteRemainlen(pkg, remainlen);
-        /* translate address flag */
-        WriteByte(pkg, 0x00);
+        WriteUint16(pkg, msg_id);
     }
+
     /* json flag */
     WriteByte(pkg, type);
     /* json */ 
@@ -619,34 +699,39 @@ MKFUN_UNPACK_SAVE_DATA(int, Int)
 MKFUN_UNPACK_SAVE_DATA(double, Double)
 MKFUN_UNPACK_SAVE_DATA(char*, String)
 
-int32 UnpackSavedataAck(EdpPacket* pkg, char** json_ack){
+int32 UnpackSavedataAck(EdpPacket* pkg, uint16* msg_id, unsigned char* result)
+{
     uint32 remainlen = 0;
     uint8 flag = 0;
-    uint16 json_len = 0;
+
+	if (NULL == msg_id){
+		return ERR_UNPACK_SAVEDATA_ACK;
+	}
 
     if (ReadRemainlen(pkg, &remainlen))
         return ERR_UNPACK_SAVEDATA_ACK;
 
     if (ReadByte(pkg, &flag))
-	return ERR_UNPACK_SAVEDATA_ACK;
+        return ERR_UNPACK_SAVEDATA_ACK;
 
-    if (ReadUint16(pkg, &json_len))
-	return ERR_UNPACK_SAVEDATA_ACK;
-
-    if (ReadBytes(pkg, (uint8**)(json_ack), json_len))
-	return ERR_UNPACK_SAVEDATA_ACK;
+    if (flag & 0x40){
+        if (ReadUint16(pkg, msg_id) || ReadByte(pkg, result)){
+            return ERR_UNPACK_SAVEDATA_ACK;
+        }
+    }
 
     return 0;
 }
 
 /* sava_data bin (C->S) */
-EdpPacket* PacketSavedataBin(const char* dst_devid, 
-        cJSON* desc_obj, const uint8* bin_data, uint32 bin_len)
+EdpPacket* PacketSavedataBin(const char* dst_devid, cJSON* desc_obj,
+                             const uint8* bin_data, uint32 bin_len, uint16 msg_id)
 {
     EdpPacket* pkg = NULL;
     uint32 remainlen = 0;
     char* desc_out = NULL;
     uint32 desc_len = 0;
+    uint8 flag = 0;
 
     /* check arguments */
     desc_out = cJSON_Print(desc_obj);
@@ -661,25 +746,26 @@ EdpPacket* PacketSavedataBin(const char* dst_devid,
     }
     pkg = NewBuffer();
 	/* msg type */
-	WriteByte(pkg, SAVEDATA);
+    WriteByte(pkg, SAVEDATA);
+    remainlen = 1 + (msg_id ? 2:0) +              /* 固定选项 + 消息标志 */
+        (dst_devid ? (2+strlen(dst_devid)) : 0) + /* 目的设备 */
+        1 + (2+desc_len) +                        /* 数据类型 + 描述串长度 */
+        4 + bin_len;                              /* 二进制数据长度 */
+
+    WriteRemainlen(pkg, remainlen);
+    flag |= dst_devid ? 0x80 : 0;
+    flag |= msg_id ? 0x40 : 0;
+    WriteByte(pkg, flag);
+
     if (dst_devid)
     {
-        /* remain len */
-        remainlen = 1+(2+strlen(dst_devid))+1+(2+desc_len)+(4+bin_len);
-        WriteRemainlen(pkg, remainlen);
-        /* translate address flag */
-        WriteByte(pkg, 0x80);
-        /* dst devid */
         WriteStr(pkg, dst_devid);
     }
-    else
-    {
-        /* remain len */
-        remainlen = 1+1+(2+desc_len)+(4+bin_len);
-        WriteRemainlen(pkg, remainlen);
-        /* translate address flag */
-        WriteByte(pkg, 0x00);
+
+    if (msg_id){
+        WriteUint16(pkg, msg_id);
     }
+
     /* bin flag */
     WriteByte(pkg, 0x02);
     /* desc */ 
@@ -691,12 +777,13 @@ EdpPacket* PacketSavedataBin(const char* dst_devid,
     return pkg;
 }
 
-EdpPacket* PacketSavedataBinStr(const char* dst_devid, 
-        const char* desc_str, const uint8* bin_data, uint32 bin_len)
+EdpPacket* PacketSavedataBinStr(const char* dst_devid, const char* desc_str,
+                                const uint8* bin_data, uint32 bin_len, uint16 msg_id)
 {
     EdpPacket* pkg = NULL;
     uint32 remainlen = 0;
     uint32 desc_len = 0;
+    uint16 flag = 0;
 
     /* check arguments */
     desc_len = strlen(desc_str);
@@ -705,28 +792,29 @@ EdpPacket* PacketSavedataBinStr(const char* dst_devid,
         return 0;
     }
     pkg = NewBuffer();
-	/* msg type */
-	WriteByte(pkg, SAVEDATA);
+    /* msg type */
+    WriteByte(pkg, SAVEDATA);
+    remainlen = 1 + (msg_id ? 2:0) +              /* 固定选项 + 消息标志 */
+        (dst_devid ? (2+strlen(dst_devid)) : 0) + /* 目的设备 */
+        1 + (2+desc_len) +                        /* 数据类型 + 描述串长度 */
+        4 + bin_len;                              /* 二进制数据长度 */
+
+    WriteRemainlen(pkg, remainlen);
+    flag |= dst_devid ? 0x80 : 0;
+    flag |= msg_id ? 0x40 : 0;
+    WriteByte(pkg, flag);
+
     if (dst_devid)
     {
-        /* remain len */
-        remainlen = 1+(2+strlen(dst_devid))+1+(2+desc_len)+(4+bin_len);
-        WriteRemainlen(pkg, remainlen);
-        /* translate address flag */
-        WriteByte(pkg, 0x80);
-        /* dst devid */
         WriteStr(pkg, dst_devid);
     }
-    else
-    {
-        /* remain len */
-        remainlen = 1+1+(2+desc_len)+(4+bin_len);
-        WriteRemainlen(pkg, remainlen);
-        /* translate address flag */
-        WriteByte(pkg, 0x00);
+
+    if (msg_id){
+        WriteUint16(pkg, msg_id);
     }
+
     /* bin flag */
-    WriteByte(pkg, 0x02);
+    WriteByte(pkg, kTypeBin);
     /* desc */ 
     WriteStr(pkg, desc_str);
     /* bin data */
@@ -869,12 +957,14 @@ int32 UnpackSavedata(EdpPacket* pkg, char** src_devid, uint8* jb_flag)
 {
     uint32 remainlen;
     uint8 ta_flag;
+    uint16 msg_id;
+
     if (ReadRemainlen(pkg, &remainlen))
         return ERR_UNPACK_SAVED_REMAIN;
     /* translate address flag */
     if (ReadByte(pkg, &ta_flag)) 
         return ERR_UNPACK_SAVED_TANSFLAG;
-    if (ta_flag == 0x80)
+    if (ta_flag & 0x80)
     {
         if (ReadStr(pkg, src_devid))
             return ERR_UNPACK_SAVED_DEVID;
@@ -883,6 +973,13 @@ int32 UnpackSavedata(EdpPacket* pkg, char** src_devid, uint8* jb_flag)
     {
         *src_devid = 0;
     }
+
+    if (ta_flag & 0x40)
+    {
+        if (ReadUint16(pkg, &msg_id))
+            return ERR_UNPACK_SAVED_DEVID;
+    }
+
     /* json or bin */
     if (ReadByte(pkg, jb_flag)) 
         return ERR_UNPACK_SAVED_DATAFLAG;
@@ -966,35 +1063,36 @@ int32 UnpackPingResp(EdpPacket* pkg)
 }
 
 /* sava_data (C->S) */
-EdpPacket* PacketSavedataSimpleString(const char* dst_devid, const char* input)
+EdpPacket* PacketSavedataSimpleString(const char* dst_devid, const char* input, uint16 msg_id)
 {
     EdpPacket* pkg = NULL;
     uint32 remainlen = 0;
     uint32 input_len = 0;
+    uint16 flag = 0;
 
     pkg = NewBuffer();
     input_len = strlen(input);
     /* msg type */
     WriteByte(pkg, SAVEDATA);
+    remainlen = 1 + (msg_id ? 2:0) +              /* 固定选项 + 消息标志 */
+        (dst_devid ? (2+strlen(dst_devid)) : 0) + /* 目的设备 */
+        1 + (2+input_len);                        /* 数据类型 + 字符串长度*/
+
+    WriteRemainlen(pkg, remainlen);
+    flag |= dst_devid ? 0x80 : 0;
+    flag |= msg_id ? 0x40 : 0;
+    WriteByte(pkg, flag);
+
     if (dst_devid)
     {
-        /* remain len */
-        remainlen = 1+(2+strlen(dst_devid))+1+(2+input_len);
-        WriteRemainlen(pkg, remainlen);
-        /* translate address flag */
-        WriteByte(pkg, 0x80);
-        /* dst devid */
         WriteStr(pkg, dst_devid);
     }
-    else
-    {
-        /* remain len */
-        remainlen = 1+1+(2+input_len);
-        WriteRemainlen(pkg, remainlen);
-        /* translate address flag */
-        WriteByte(pkg, 0x00);
+
+    if (msg_id){
+        WriteUint16(pkg, msg_id);
     }
-    /* json flag */
+
+    /* JSON flag */
     WriteByte(pkg, kTypeString);
     /* json */ 
     WriteStr(pkg, input);
@@ -1009,5 +1107,185 @@ int32 UnpackSavedataSimpleString(EdpPacket* pkg, char** output)
     return 0;
 }
 
+EdpPacket* PacketSavedataSimpleStringWithTime(const char* dst_devid, const char* input, const LPDataTime op_time, uint16 msg_id){
+	EdpPacket* pkg = NULL;
+    uint32 remainlen = 0;
+    uint32 input_len = 0;
+    uint16 flag = 0;
+
+	time_t tTime = 0;
+
+	struct tm st = {0};
+
+    pkg = NewBuffer();
+    input_len = strlen(input);
+    /* msg type */
+    WriteByte(pkg, SAVEDATA);
+    remainlen = 1 + (msg_id ? 2:0) +              /* 固定选项 + 消息标志 */
+        (dst_devid ? (2+strlen(dst_devid)) : 0) + /* 目的设备 */
+        1 + 6 + (2+input_len);                        /* 数据类型 + 6字节时间+字符串长度*/
+
+    WriteRemainlen(pkg, remainlen);
+
+	
+    flag |= dst_devid ? 0x80 : 0;
+    flag |= msg_id ? 0x40 : 0;
+    WriteByte(pkg, flag);
+
+    if (dst_devid)
+    {
+        WriteStr(pkg, dst_devid);
+    }
+
+    if (msg_id){
+        WriteUint16(pkg, msg_id);
+    }
+
+    /* string with time flag */
+    WriteByte(pkg, kTypeStringWithTime);
+	
+	/*write time*/
+	if (op_time == NULL){
+		tTime = time(NULL);
+
+		localtime_r(&tTime, &st);
+
+		WriteByte(pkg, st.tm_year + 1900 - 2000);
+		WriteByte(pkg, st.tm_mon + 1);
+		WriteByte(pkg, st.tm_mday);
+		WriteByte(pkg, st.tm_hour);
+		WriteByte(pkg, st.tm_min);
+		WriteByte(pkg, st.tm_sec);
+	}
+	else{
+		WriteByte(pkg, op_time->year - 2000);
+		WriteByte(pkg, op_time->month + 1);
+		WriteByte(pkg, op_time->day);
+		WriteByte(pkg, op_time->hour);
+		WriteByte(pkg, op_time->minute);
+		WriteByte(pkg, op_time->second);
+	}
+	
+	
+	
+    /* string */ 
+    WriteStr(pkg, input);
+
+    return pkg;
+}
+
+int32 UnpackSavedataSimpleStringWithTime(EdpPacket* pkg, char** output, LPDataTime at){
+	if (ReadDataTime(pkg, at)
+		|| ReadStr(pkg, output)){
+		return ERR_UNPACK_SAVED_STR_WITH_TIME;
+	}
+	return 0;
+}
+
+EdpPacket* PackSavedataFloatWithTime(const char* dst_devid, const FloatDPS* input, int input_count, const LPDataTime op_time, uint16 msg_id){
+    EdpPacket* pkg = NewBuffer();
+    
+    uint32  input_len = 0;
+    uint32  remainlen = 0;
+    uint32  i = 0;
+    uint16  flag = 0;
+
+    time_t tTime = 0;
+	struct tm st = {0};
+
+    printf("== enter PackSavedataFloatWithTime: input_count:%d,dst:%s == \n", input_count, dst_devid);
+    
+
+    /*ensure count less than 1000*/
+    input_count = input_count > MAX_FLOAT_DPS_COUNT ? MAX_FLOAT_DPS_COUNT : input_count; 
+    input_len = 6 * input_count;
+
+    WriteByte(pkg, SAVEDATA);
+
+    remainlen = 1 + (msg_id ? 2:0) +              /* 固定选项 + 消息标志 */
+        (dst_devid ? (2+strlen(dst_devid)) : 0) + /* 目的设备 */
+        1 + 2 +                                   /* 数据类型 + 数据点个数 + 6字节时间+浮点数据流*/
+        6 + input_len;
+                                                    
+    WriteRemainlen(pkg, remainlen);
+
+    
+    printf("== remain_len:%u , input_len:%u == \n", remainlen, input_len);
+
+    flag |= dst_devid ? 0x80 : 0;
+    flag |= msg_id ? 0x40 : 0;
+    WriteByte(pkg, flag);
+
+    if (dst_devid)
+    {
+        WriteStr(pkg, dst_devid);
+    }
+
+    if (msg_id){
+        WriteUint16(pkg, msg_id);
+    }
+
+    /*write savedata type*/
+    WriteByte(pkg, kTypeFloatWithTime);
+
+    /*write time*/
+	if (op_time == NULL){
+		tTime = time(NULL);
+
+		localtime_r(&tTime, &st);
+
+        WriteByte(pkg, st.tm_year - 100);
+		WriteByte(pkg, st.tm_mon + 1);
+		WriteByte(pkg, st.tm_mday);
+		WriteByte(pkg, st.tm_hour);
+		WriteByte(pkg, st.tm_min);
+		WriteByte(pkg, st.tm_sec);
+	}
+	else{
+		WriteByte(pkg, op_time->year - 2000);
+		WriteByte(pkg, op_time->month);
+		WriteByte(pkg, op_time->day);
+		WriteByte(pkg, op_time->hour);
+		WriteByte(pkg, op_time->minute);
+		WriteByte(pkg, op_time->second);
+	}
+
+    /*  write float number */
+    WriteUint16(pkg, input_count);
+
+    for(i = 0; i < input_count; ++i){
+        WriteUint16(pkg, input[i].ds_id);
+        WriteFloat(pkg, input[i].f_data);
+    }
+
+    return pkg;
+}
+
+int32 UnpackSavedataFloatWithTime(EdpPacket* pkg, FloatDPS** output, int* out_count, LPDataTime at){
+    uint32 remain_len = 0;
+    uint32 i = 0;
+    uint16 count = 0;
+    if (ReadDataTime(pkg, at)){
+        return ERR_UNPACK_SAVED_FLOAT_WITH_TIME;
+    }
+
+    if (ReadUint16(pkg, &count)){
+        return ERR_UNPACK_SAVED_FLOAT_WITH_TIME;
+    }
+    *out_count = count;
+
+    
+    *output = (FloatDPS*)malloc(*out_count * sizeof(FloatDPS));
+    if (NULL == *output){
+        return ERR_UNPACK_SAVED_FLOAT_WITH_TIME;
+    }
+
+    for (i = 0; i < *out_count; ++i){
+        ReadUint16(pkg, &(*output)[i].ds_id);
+        ReadFloat(pkg, &(*output)[i].f_data);
+    }
+
+    return 0;
+}
 
 
