@@ -1,4 +1,4 @@
-﻿#include <stdio.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
 #include <string.h>
@@ -212,6 +212,7 @@ void recv_thread_func(void* arg)
     int count = 0;
     int i = 0;
 
+    struct UpdateInfoList* up_info = NULL;
 
 #ifdef _DEBUG
     printf("[%s] recv thread start ...\n", __func__);
@@ -266,6 +267,21 @@ void recv_thread_func(void* arg)
                 free(src_devid);
                 free(push_data);
                 break;
+            case UPDATERESP:
+                UnpackUpdateResp(pkg, &up_info);
+                while (up_info){
+                    printf("name = %s\n", up_info->name);
+                    printf("version = %s\n", up_info->version);
+                    printf("url = %s\nmd5 = ", up_info->url);
+                    for (i=0; i<32; ++i){
+                        printf("%c", (char)up_info->md5[i]);
+                    }
+                    printf("\n");
+                    up_info = up_info->next;
+                }
+                FreeUpdateInfolist(up_info);
+                break;
+
             case SAVEDATA:
                 /* 解析EDP包 - 数据存储 */
                 if (UnpackSavedata(pkg, &src_devid, &jsonorbin) == 0)
@@ -369,6 +385,7 @@ void recv_thread_func(void* arg)
                 UnpackPingResp(pkg);
                 printf("recv ping resp\n");
                 break;
+
             default:
                 /* 未知消息类型 */
                 error = 1;
@@ -424,6 +441,7 @@ int main(int argc, char *argv[])
     char send_str[] = ",;temperature,2015-03-22 22:31:12,22.5;humidity,35%;pm2.5,89;1001";
     FloatDPS send_float[] = {{1,0.5},{2,0.8},{3,-0.5}};
     SaveDataType data_type;
+    struct UpdateInfoList* up_info = NULL;
     /* 
      * 说明: 这里只是为了测试EdpKit而写的例子, 客户程序应该根据自己程序的需求写代码
      * 根据标准输入 做不同的处理 
@@ -441,7 +459,8 @@ int main(int argc, char *argv[])
                       "send savedata simple json with time to server",
                       "send string split by simicolon",
                       "send string with time to server",
-                      "send float with time to server"};
+                      "send float with time to server",
+                      "send update info to server"};
 	
     while ((opt = getopt(argc, argv, "hi:p:s:d:a:l:v:t:E")) != -1) {
         switch (opt){
@@ -549,6 +568,7 @@ int main(int argc, char *argv[])
     printf("[6] send simple format (string) \n");
 	printf("[7] send simple format (string) with datetime \n");
     printf("[8] send float data with datetime \n");
+    printf("[9] send update info \n");
 	      
     while (1)
     {
@@ -595,6 +615,22 @@ int main(int argc, char *argv[])
 			    send_pkg = PackSavedataFloatWithTime(dst_dev, send_float, 3, &save_time, 0);
 		    else
 			    send_pkg = PackSavedataFloatWithTime(dst_dev, send_float, 3, NULL, 0);
+            break;
+
+        case '9':
+            /* up_info = (struct UpdateInfoList*)malloc(sizeof(struct UpdateInfoList)); */
+            /* up_info->name = "file.txt"; */
+            /* up_info->version = "v1.0"; */
+            /* up_info->next = NULL; */
+
+            /* up_info->next = (struct UpdateInfoList*)malloc(sizeof(struct UpdateInfoList)); */
+            /* up_info->next->name = "EdpKit.h"; */
+            /* up_info->next->version = "v1.0"; */
+            /* up_info->next->next = NULL; */
+
+            send_pkg = PacketUpdateReq(up_info);
+            hexdump(send_pkg->_data, send_pkg->_write_pos);
+            free(up_info);
             break;
 
         default:

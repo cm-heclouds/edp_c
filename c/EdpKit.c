@@ -1,4 +1,4 @@
-﻿#include <stdlib.h>
+#include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
 #include <assert.h>
@@ -59,6 +59,7 @@
                                                                         \
         FormatAt(ss, 100, at);                                          \
         cJSON_AddStringToObject(dp_item, "at", ss);                     \
+                                                                        \
         cJSON_Add##MED##ToObject(dp_item, "value", value);              \
             cJSON_AddItemToArray(dp_array, dp_item);                    \
                                                                         \
@@ -393,13 +394,23 @@ int32 ReadStr(EdpPacket* pkg, char** val)
 }
 
 int32 ReadDataTime(EdpPacket* pkg, LPDataTime val){
-	uint8 data_time = 0;
+    char buf[6] = {0};
+    uint8 data_time = 0;
 
 	if (NULL == val){
 		return -1;
 	}
 
-	memset(val, 0, sizeof(DataTime));
+    memset(val, 0, sizeof(DataTime));
+    if (pkg->_read_pos + 6 >= pkg->_write_pos){
+        return -1;
+    }
+    else{
+        if (memcmp(pkg->_data + pkg->_read_pos, buf, 6) == 0){
+            pkg->_read_pos += 6;
+            return 0;
+        }
+    }
 
 	/*read year, year - 2000; valid arrange:[0-~]*/
 	if (ReadByte(pkg, &data_time) || data_time <= 0){
@@ -555,7 +566,7 @@ EdpPacket* PacketConnect1(const char* devid, const char* auth_key)
 	/* connect flag */
 	WriteByte(pkg, 0x40);
 	/* keep time */
-	WriteUint16(pkg, 0x0080);
+    WriteUint16(pkg, 300);
 	/* DEVID */
 	WriteStr(pkg, devid);
 	/* auth key */
@@ -1146,20 +1157,16 @@ EdpPacket* PacketSavedataSimpleStringWithTime(const char* dst_devid, const char*
 	
 	/*write time*/
 	if (op_time == NULL){
-		tTime = time(NULL);
-
-		localtime_r(&tTime, &st);
-
-		WriteByte(pkg, st.tm_year + 1900 - 2000);
-		WriteByte(pkg, st.tm_mon + 1);
-		WriteByte(pkg, st.tm_mday);
-		WriteByte(pkg, st.tm_hour);
-		WriteByte(pkg, st.tm_min);
-		WriteByte(pkg, st.tm_sec);
+        WriteByte(pkg, 0);
+        WriteByte(pkg, 0);
+        WriteByte(pkg, 0);
+        WriteByte(pkg, 0);
+        WriteByte(pkg, 0);
+        WriteByte(pkg, 0);
 	}
 	else{
 		WriteByte(pkg, op_time->year - 2000);
-		WriteByte(pkg, op_time->month + 1);
+        WriteByte(pkg, op_time->month);
 		WriteByte(pkg, op_time->day);
 		WriteByte(pkg, op_time->hour);
 		WriteByte(pkg, op_time->minute);
@@ -1204,9 +1211,9 @@ EdpPacket* PackSavedataFloatWithTime(const char* dst_devid, const FloatDPS* inpu
 
     remainlen = 1 + (msg_id ? 2:0) +              /* 固定选项 + 消息标志 */
         (dst_devid ? (2+strlen(dst_devid)) : 0) + /* 目的设备 */
-        1 + 2 +                                   /* 数据类型 + 数据点个数 + 6字节时间+浮点数据流*/
-        6 + input_len;
-                                                    
+        1 + 2 +
+        6 + input_len;                        /* 数据类型 + 数据点个数
+                                                     + 6字节时间+浮点数据流*/
     WriteRemainlen(pkg, remainlen);
 
     
@@ -1230,27 +1237,23 @@ EdpPacket* PackSavedataFloatWithTime(const char* dst_devid, const FloatDPS* inpu
 
     /*write time*/
 	if (op_time == NULL){
-		tTime = time(NULL);
-
-		localtime_r(&tTime, &st);
-
-        WriteByte(pkg, st.tm_year - 100);
-		WriteByte(pkg, st.tm_mon + 1);
-		WriteByte(pkg, st.tm_mday);
-		WriteByte(pkg, st.tm_hour);
-		WriteByte(pkg, st.tm_min);
-		WriteByte(pkg, st.tm_sec);
+        WriteByte(pkg, 0);
+        WriteByte(pkg, 0);
+        WriteByte(pkg, 0);
+        WriteByte(pkg, 0);
+        WriteByte(pkg, 0);
+        WriteByte(pkg, 0);
 	}
 	else{
 		WriteByte(pkg, op_time->year - 2000);
-		WriteByte(pkg, op_time->month);
+        WriteByte(pkg, op_time->month);
 		WriteByte(pkg, op_time->day);
 		WriteByte(pkg, op_time->hour);
 		WriteByte(pkg, op_time->minute);
 		WriteByte(pkg, op_time->second);
 	}
 
-    /*  write float number */
+    /* add float number */
     WriteUint16(pkg, input_count);
 
     for(i = 0; i < input_count; ++i){
@@ -1272,9 +1275,8 @@ int32 UnpackSavedataFloatWithTime(EdpPacket* pkg, FloatDPS** output, int* out_co
     if (ReadUint16(pkg, &count)){
         return ERR_UNPACK_SAVED_FLOAT_WITH_TIME;
     }
-    *out_count = count;
 
-    
+    *out_count = count;
     *output = (FloatDPS*)malloc(*out_count * sizeof(FloatDPS));
     if (NULL == *output){
         return ERR_UNPACK_SAVED_FLOAT_WITH_TIME;
@@ -1288,4 +1290,84 @@ int32 UnpackSavedataFloatWithTime(EdpPacket* pkg, FloatDPS** output, int* out_co
     return 0;
 }
 
+EdpPacket* PacketUpdateReq(UpdateInfoList* head)
+{
+    EdpPacket* pkg = NULL;
+    uint32 len = 0;
+    UpdateInfoList* node = head;
 
+    pkg = NewBuffer();
+    WriteByte(pkg, UPDATEREQ);
+
+    while (node){
+        if (!node->name || !strlen(node->name)
+            || !node->version || !strlen(node->name)) {
+            DeleteBuffer(&pkg);
+            return NULL;
+        }
+        len += strlen(node->name) + strlen(node->version) + 4;
+        node = node->next;
+    }
+
+    WriteRemainlen(pkg, len);
+    node = head;
+    while (node){
+        WriteStr(pkg, node->name);
+        WriteStr(pkg, node->version);
+        node = node->next;
+    }
+
+    return pkg;
+}
+
+void FreeUpdateInfolist(UpdateInfoList* head)
+{
+    UpdateInfoList* next = NULL;
+    while (head){
+        next = head->next ?  head->next : NULL;
+
+        if (head->name){
+            free(head->name);
+        }
+        if (head->version){
+            free(head->version);
+        }
+        if (head->url){
+            free(head->version);
+        }
+        if (head->md5){
+            free(head->md5);
+        }
+        free(head);
+        head = next;
+    }
+}
+
+int UnpackUpdateResp(EdpPacket* pkg, UpdateInfoList** head)
+{
+    uint32 remainlen = 0;
+    uint32 cur_pos = 0;
+    const char* p = NULL;
+    UpdateInfoList* node = NULL;
+
+    if (ReadRemainlen(pkg, &remainlen)){
+        return ERR_UNPACK_UPDATE_RESP;
+    }
+
+    while (pkg->_read_pos != pkg->_write_pos){
+        if (node){
+            node->next = (UpdateInfoList*)malloc(sizeof(UpdateInfoList));
+            node = node->next;
+        }
+        else{
+            *head = (UpdateInfoList*)malloc(sizeof(UpdateInfoList));
+            node = *head;
+        }
+        node->next = NULL;
+
+        if (ReadStr(pkg, &node->name) || ReadStr(pkg, &node->version)
+            || ReadStr(pkg, &node->url) || ReadBytes(pkg, (uint8**)&node->md5, 32)){
+            return -1;
+        }
+    }
+}

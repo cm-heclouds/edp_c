@@ -1,4 +1,4 @@
-﻿#ifndef __EDP_KIT_H__
+#ifndef __EDP_KIT_H__
 #define __EDP_KIT_H__
 
 #ifdef EDPKIT_EXPORTS
@@ -58,10 +58,9 @@ extern "C" {
 #define ERR_UNPACK_CMDREQ                       -1031
 #define ERR_UNPACK_ENCRYPT_RESP                 -1032
 #define ERR_UNPACK_SAVEDATA_ACK                 -1033
-
-#define ERR_UNPACK_SAVED_STR_WITH_TIME		-1034
-#define ERR_UNPACK_SAVED_FLOAT_WITH_TIME    -1035
-
+#define ERR_UNPACK_SAVED_STR_WITH_TIME		    -1034
+#define ERR_UNPACK_SAVED_FLOAT_WITH_TIME        -1035
+#define ERR_UNPACK_UPDATE_RESP                  -1040
 /*----------------------------消息类型---------------------------------------*/
 /* 连接请求 */
 #define CONNREQ             0x10
@@ -69,6 +68,10 @@ extern "C" {
 #define CONNRESP            0x20
 /* 转发(透传)数据 */
 #define PUSHDATA            0x30
+/* 升级请求 */
+#define UPDATEREQ           0x50
+/* 升级响应 */
+#define UPDATERESP          0x60
 /* 存储(转发)数据 */
 #define SAVEDATA            0x80
 /* 存储确认 */
@@ -85,6 +88,8 @@ extern "C" {
 #define ENCRYPTREQ          0xE0
 /* 加密响应 */
 #define ENCRYPTRESP         0xF0
+
+#define UPDATE  0x50
 
 #ifndef NULL
 #define NULL (void*)0
@@ -950,6 +955,9 @@ EDPKIT_DLL
 int32 UnpackCmdReq(EdpPacket* pkg, char** cmdid, uint16* cmdid_len,
                    char** req, uint32* req_len);
 
+
+EDPKIT_DLL
+EdpPacket* PackUpdateReq(const char* softinfo, int len);
 /* 
  * 函数名:  PacketPing
  * 功能:    打包 由设备到设备云的EDP协议包, 心跳
@@ -978,6 +986,27 @@ EdpPacket* PacketPing(void);
  */
 EDPKIT_DLL
 int32 UnpackPingResp(EdpPacket* pkg);
+
+typedef struct UpdateInfoList
+{
+    char* name;
+    char* version;
+    char* url;
+    char* md5; /* 32bytes */
+    struct UpdateInfoList* next;
+}UpdateInfoList;
+
+EDPKIT_DLL
+void FreeUpdateInfolist(struct UpdateInfoList* head);
+
+EDPKIT_DLL
+EdpPacket* PackUpdateReq(const char* softinfo, int len);
+
+EDPKIT_DLL
+EdpPacket* PacketUpdateReq(UpdateInfoList* head);
+
+EDPKIT_DLL
+int UnpackUpdateResp(EdpPacket* pkg, UpdateInfoList** head);
 
 #ifdef __cplusplus
 }
